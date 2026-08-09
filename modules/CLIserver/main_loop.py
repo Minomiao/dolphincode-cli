@@ -11,7 +11,7 @@ from .changes import handle_post_chat_changes
 from .header import print_header, print_conversation_history
 from .settings import settings_mode, model_settings, toggle_tools, effort_settings
 from .conversation_ops import (
-    open_work_directory, new_conversation, load_conversation, list_conversations
+    open_work_directory, new_conversation, load_conversation, select_conversation
 )
 from .display import show_help, show_tools, show_skills
 
@@ -71,7 +71,7 @@ async def main():
                     new_conversation(args)
                     continue
                 elif keyword == cmd.get_command_keyword('list'):
-                    list_conversations()
+                    select_conversation()
                     continue
                 elif keyword == cmd.get_command_keyword('load'):
                     load_conversation(args)

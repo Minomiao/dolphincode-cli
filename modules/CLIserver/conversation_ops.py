@@ -4,10 +4,10 @@ import os
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from rich.table import Table
 
 from modules import bootstrap
 from modules.logger import get_logger
+from . import i18n
 from .state import state
 from .screen_refresh import create_header_panel, create_footer_panel
 
@@ -169,75 +169,110 @@ def new_conversation(new_name):
     screen_refresh.refresh(print_header, print_conversation_history, f"已切换到新对话: {new_name}", show_history=False)
 
 
-def load_conversation(load_name):
-    """加载旧对话。"""
-    cmd = state.cmd
-    config = state.config
-    conversation_loader = state.conversation_loader
-    screen_refresh = state.screen_refresh
+def _load_and_activate(work_dir, conv_id, conv_name):
+    """加载指定对话并更新全局状态（不刷新界面）。
 
+    Args:
+        work_dir: 工作目录
+        conv_id: 对话 ID
+        conv_name: 对话名称
+
+    Returns:
+        bool: 是否加载成功
+    """
+    from modules.chater import dpc_manager
+    conversation_loader = state.conversation_loader
+    dir_id = dpc_manager.ensure_dir_id(work_dir)
+    result = conversation_loader.load_and_activate(
+        state.chat_instance, dir_id, conv_id, conv_name, work_dir)
+    if not result:
+        return False
+    state.current_conversation = result['conv_name']
+    state.current_dir_id = result['dir_id']
+    state.current_conv_id = result['conv_id']
+    state.chat_instance.set_save_target(result['dir_id'], result['conv_id'])
+    return True
+
+
+def load_conversation(load_name):
+    """加载旧对话；无名称时进入上下键选择界面。"""
     if not load_name:
-        load_name = input("请输入要加载的对话名称: ")
-    if not load_name:
+        select_conversation('load')
         return
 
     from modules.chater import dpc_manager
     work_dir = state.current_config.get('work_directory', 'workplace')
     dir_id = dpc_manager.ensure_dir_id(work_dir)
     load_conv_id = dpc_manager.get_id_by_name(work_dir, load_name)
-    result = conversation_loader.load_and_activate(
-        state.chat_instance, dir_id, load_conv_id, load_name, work_dir)
-    if result:
-        state.current_conversation = result['conv_name']
-        state.current_dir_id = result['dir_id']
-        state.current_conv_id = result['conv_id']
-        state.chat_instance.set_save_target(result['dir_id'], result['conv_id'])
-
-        from .header import print_header, print_conversation_history
-        screen_refresh.refresh(print_header, print_conversation_history, f"已加载对话: {load_name}")
-    else:
+    if not load_conv_id:
         log.warning(f"对话不存在: {load_name}")
-        print(f"对话 '{load_name}' 不存在")
+        print(i18n.t("conv.not_found", name=load_name))
+        return
+
+    if not _load_and_activate(work_dir, load_conv_id, load_name):
+        return
+
+    from .header import print_header, print_conversation_history
+    state.screen_refresh.refresh(print_header, print_conversation_history,
+                                 i18n.t("conv.loaded", name=load_name))
 
 
-def list_conversations():
-    """列出当前目录的所有对话界面。"""
+def select_conversation(command_key='list'):
+    """对话选择界面：上下键浏览所有对话，Enter 加载，Esc 返回。
+
+    Args:
+        command_key: 触发该界面的命令标识（默认 'list'），用于退出后的命令回显
+    """
     cmd = state.cmd
-    config = state.config
-    from modules.chater import dpc_manager
-    work_dir = state.current_config.get('work_directory', 'workplace')
-    dpc_convs = dpc_manager.get_conversations(work_dir)
-    log.info(f"列出对话（当前目录: {work_dir}），共 {len(dpc_convs)} 个")
+    log.info(f"进入对话选择界面（来源命令: {command_key}）")
 
     def _render():
-        if dpc_convs:
-            # 构建对话列表表格
-            table = Table(show_header=True, header_style="bold cyan", border_style="dim", padding=(0, 2))
-            table.add_column("#", style="dim", width=4)
-            table.add_column("对话名称", style="bold white", width=30)
-            table.add_column("状态", width=10)
+        from modules.chater import dpc_manager
+        from .key_nav import navigate
 
-            for i, conv in enumerate(dpc_convs, 1):
-                if conv["id"] == state.current_conv_id:
-                    table.add_row(str(i), conv['name'], Text("当前", style="green"))
-                else:
-                    table.add_row(str(i), conv['name'], "")
+        work_dir = state.current_config.get('work_directory', 'workplace')
+        dpc_convs = dpc_manager.get_conversations(work_dir)
+        log.info(f"对话选择界面（工作目录: {work_dir}），共 {len(dpc_convs)} 个对话")
 
+        if not dpc_convs:
             _console.print()
-            _console.print(create_header_panel("对话列表", f"工作目录: {work_dir}"))
+            _console.print(create_header_panel(i18n.t("conv.title"),
+                                               f"{i18n.t('header.work_dir')}{work_dir}"))
             _console.print()
-            _console.print(table)
-        else:
+            _console.print(Panel(Text(i18n.t("conv.no_conversations"), style="yellow"),
+                                 border_style="yellow"))
             _console.print()
-            _console.print(create_header_panel("对话列表", f"工作目录: {work_dir}"))
-            _console.print()
-            _console.print(Panel(Text(f"当前目录 '{work_dir}' 没有关联的对话", style="yellow"), border_style="yellow"))
+            _console.print(create_footer_panel(i18n.t("display.back_hint")))
+            input()
+            return
 
-        _console.print()
-        _console.print(create_footer_panel(f"共 {len(dpc_convs)} 个对话 | 按 Enter 键返回主界面"))
-        input()
+        current_id = state.current_conv_id
+        initial = 0
+        for i, conv in enumerate(dpc_convs):
+            if conv["id"] == current_id:
+                initial = i
+                break
+
+        def _label(conv, i):
+            marker = "✓" if conv["id"] == current_id else ""
+            line = conv["name"]
+            if marker:
+                line += f"  {marker}"
+            return line
+
+        def _on_enter(conv, i):
+            if _load_and_activate(work_dir, conv["id"], conv["name"]):
+                _console.print(f"[green]{i18n.t('conv.loaded', name=conv['name'])}[/green]")
+            input(i18n.t("main.press_enter"))
+            return True
+
+        navigate(i18n.t("conv.title"),
+                 f"{i18n.t('header.work_dir')}{work_dir}",
+                 dpc_convs, _label, _on_enter,
+                 i18n.t("conv.hint"),
+                 initial=initial)
 
     from .screen_refresh import enter_screen
     enter_screen(_render,
-                 command_input=cmd.get_command('list'),
-                 command_info=f"╰─{cmd.get_command_description('list')}")
+                 command_input=cmd.get_command(command_key),
+                 command_info=f"╰─{cmd.get_command_description(command_key)}")

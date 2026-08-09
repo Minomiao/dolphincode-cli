@@ -10,6 +10,7 @@ from rich.console import Console
 
 from modules.logger import get_logger
 from . import console_input
+from . import i18n
 from .state import state
 from .screen_refresh import clear_screen, create_header_panel, create_footer_panel
 
@@ -88,7 +89,9 @@ def navigate(title, subtitle, options, label_fn, on_enter, hint,
                 if i == index:
                     _console.print(line, style="bold cyan")
                 else:
-                    _console.print(line, style="dim")
+                    # 未选中行明确指定蓝灰色，避免纯 dim（未指定颜色）在
+                    # 部分终端下渲染为灰色且各行业色不一致
+                    _console.print(line, style="dim cyan")
         if total > end - start:
             _console.print(f"[dim]({start + 1}-{end}/{total})[/dim]")
         _console.print()

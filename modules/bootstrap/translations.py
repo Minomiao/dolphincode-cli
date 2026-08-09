@@ -117,6 +117,12 @@ TRANSLATIONS = {
         "tools.subtitle": "共 {count} 个工具",
         "tools.no_tools": "没有可用的工具",
         "display.back_hint": "按 Enter 键返回主界面",
+        # ===== 对话选择界面 =====
+        "conv.title": "对话列表",
+        "conv.hint": "↑/↓ 选择，Enter 加载，Esc 返回",
+        "conv.loaded": "已加载对话: {name}",
+        "conv.no_conversations": "当前目录没有关联的对话",
+        "conv.not_found": "对话 '{name}' 不存在",
     },
     "zh-TW": {
         "header.help_hint": "輸入 '{command}' 取得命令說明",
@@ -213,6 +219,12 @@ TRANSLATIONS = {
         "tools.subtitle": "共 {count} 個工具",
         "tools.no_tools": "沒有可用的工具",
         "display.back_hint": "按 Enter 鍵返回主介面",
+        # ===== 對話選擇介面 =====
+        "conv.title": "對話列表",
+        "conv.hint": "↑/↓ 選擇，Enter 載入，Esc 返回",
+        "conv.loaded": "已載入對話: {name}",
+        "conv.no_conversations": "目前目錄沒有關聯的對話",
+        "conv.not_found": "對話 '{name}' 不存在",
     },
     "en-US": {
         "header.help_hint": "Type '{command}' to get command help",
@@ -309,6 +321,13 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} tools total",
         "tools.no_tools": "No tools available",
         "display.back_hint": "Press Enter to return to main screen",
+
+        # ===== Conversation selection screen =====
+        "conv.title": "Conversations",
+        "conv.hint": "↑/↓ select, Enter load, Esc back",
+        "conv.loaded": "Loaded conversation: {name}",
+        "conv.no_conversations": "No conversations in this directory",
+        "conv.not_found": "Conversation '{name}' not found",
     },
     "ja-JP": {
         "header.help_hint": "'{command}' でコマンドのヘルプを表示",
@@ -405,6 +424,12 @@ TRANSLATIONS = {
         "tools.subtitle": "全 {count} 個のツール",
         "tools.no_tools": "利用可能なツールがありません",
         "display.back_hint": "Enter でメイン画面に戻る",
+        # ===== 会話選択画面 =====
+        "conv.title": "会話リスト",
+        "conv.hint": "↑/↓ 選択、Enter で読み込み、Esc で戻る",
+        "conv.loaded": "会話を読み込みました: {name}",
+        "conv.no_conversations": "このディレクトリに関連する会話はありません",
+        "conv.not_found": "会話 '{name}' は存在しません",
     },
     "ko-KR": {
         "header.help_hint": "'{command}'를 입력하면 명령어 도움말을 볼 수 있습니다",
@@ -501,6 +526,12 @@ TRANSLATIONS = {
         "tools.subtitle": "총 {count}개 도구",
         "tools.no_tools": "사용 가능한 도구가 없습니다",
         "display.back_hint": "Enter를 눌러 메인 화면으로 돌아가기",
+        # ===== 대화 선택 화면 =====
+        "conv.title": "대화 목록",
+        "conv.hint": "↑/↓ 선택, Enter 로드, Esc 돌아가기",
+        "conv.loaded": "대화 로드됨: {name}",
+        "conv.no_conversations": "현재 디렉터리에 대화가 없습니다",
+        "conv.not_found": "대화 '{name}'이(가) 없습니다",
     },
     "fr-FR": {
         "header.help_hint": "Tapez '{command}' pour obtenir l'aide des commandes",
@@ -597,6 +628,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} outils au total",
         "tools.no_tools": "Aucun outil disponible",
         "display.back_hint": "Appuyez sur Entrée pour revenir à l'écran principal",
+        # ===== Écran de sélection de conversation =====
+        "conv.title": "Conversations",
+        "conv.hint": "↑/↓ sélectionner, Entrée charger, Échap retour",
+        "conv.loaded": "Conversation chargée : {name}",
+        "conv.no_conversations": "Aucune conversation dans ce répertoire",
+        "conv.not_found": "Conversation '{name}' introuvable",
     },
     "de-DE": {
         "header.help_hint": "Geben Sie '{command}' ein, um die Befehls-Hilfe zu erhalten",
@@ -693,6 +730,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} Werkzeuge insgesamt",
         "tools.no_tools": "Keine Werkzeuge verfügbar",
         "display.back_hint": "Drücken Sie Enter, um zum Hauptbildschirm zurückzukehren",
+        # ===== Gesprächsauswahl-Bildschirm =====
+        "conv.title": "Gespräche",
+        "conv.hint": "↑/↓ wählen, Enter laden, Esc zurück",
+        "conv.loaded": "Gespräch geladen: {name}",
+        "conv.no_conversations": "Keine Gespräche in diesem Verzeichnis",
+        "conv.not_found": "Gespräch '{name}' nicht gefunden",
     },
     "es-ES": {
         "header.help_hint": "Escribe '{command}' para obtener ayuda de comandos",
@@ -789,6 +832,13 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} herramientas en total",
         "tools.no_tools": "No hay herramientas disponibles",
         "display.back_hint": "Presiona Enter para volver a la pantalla principal",
+
+        # ===== Pantalla de selección de conversación =====
+        "conv.title": "Conversaciones",
+        "conv.hint": "↑/↓ seleccionar, Enter cargar, Esc volver",
+        "conv.loaded": "Conversación cargada: {name}",
+        "conv.no_conversations": "No hay conversaciones en este directorio",
+        "conv.not_found": "Conversación '{name}' no encontrada",
     },
     "ru-RU": {
         "header.help_hint": "Введите '{command}', чтобы получить справку по командам",
@@ -885,6 +935,12 @@ TRANSLATIONS = {
         "tools.subtitle": "Всего {count} инструментов",
         "tools.no_tools": "Нет доступных инструментов",
         "display.back_hint": "Нажмите Enter, чтобы вернуться на главный экран",
+        # ===== Экран выбора диалога =====
+        "conv.title": "Диалоги",
+        "conv.hint": "↑/↓ выбрать, Enter загрузить, Esc назад",
+        "conv.loaded": "Диалог загружен: {name}",
+        "conv.no_conversations": "В этом каталоге нет диалогов",
+        "conv.not_found": "Диалог '{name}' не найден",
     },
     "pt-BR": {
         "header.help_hint": "Digite '{command}' para obter ajuda dos comandos",
@@ -981,6 +1037,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} ferramentas no total",
         "tools.no_tools": "Nenhuma ferramenta disponível",
         "display.back_hint": "Pressione Enter para voltar à tela principal",
+        # ===== Tela de seleção de conversa =====
+        "conv.title": "Conversas",
+        "conv.hint": "↑/↓ selecionar, Enter carregar, Esc voltar",
+        "conv.loaded": "Conversa carregada: {name}",
+        "conv.no_conversations": "Nenhuma conversa neste diretório",
+        "conv.not_found": "Conversa '{name}' não encontrada",
     },
     "it-IT": {
         "header.help_hint": "Digita '{command}' per ottenere aiuto sui comandi",
@@ -1077,6 +1139,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} strumenti",
         "tools.no_tools": "Nessuno strumento disponibile",
         "display.back_hint": "Premi Enter per tornare all'interfaccia principale",
+        # ===== Schermata di selezione della conversazione =====
+        "conv.title": "Conversazioni",
+        "conv.hint": "↑/↓ seleziona, Invio carica, Esc indietro",
+        "conv.loaded": "Conversazione caricata: {name}",
+        "conv.no_conversations": "Nessuna conversazione in questa directory",
+        "conv.not_found": "Conversazione '{name}' non trovata",
     },
     "nl-NL": {
         "header.help_hint": "Typ '{command}' voor hulp bij opdrachten",
@@ -1173,6 +1241,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} tools",
         "tools.no_tools": "Geen tools beschikbaar",
         "display.back_hint": "Druk op Enter om terug te keren naar het hoofdscherm",
+        # ===== Scherm voor gespreksselectie =====
+        "conv.title": "Gesprekken",
+        "conv.hint": "↑/↓ selecteren, Enter laden, Esc terug",
+        "conv.loaded": "Gesprek geladen: {name}",
+        "conv.no_conversations": "Geen gesprekken in deze map",
+        "conv.not_found": "Gesprek '{name}' niet gevonden",
     },
     "pl-PL": {
         "header.help_hint": "Wpisz '{command}', aby uzyskać pomoc dotyczącą poleceń",
@@ -1269,6 +1343,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} narzędzi",
         "tools.no_tools": "Brak dostępnych narzędzi",
         "display.back_hint": "Naciśnij Enter, aby wrócić do głównego ekranu",
+        # ===== Ekran wyboru rozmowy =====
+        "conv.title": "Rozmowy",
+        "conv.hint": "↑/↓ wybierz, Enter załaduj, Esc wróć",
+        "conv.loaded": "Załadowano rozmowę: {name}",
+        "conv.no_conversations": "Brak rozmów w tym katalogu",
+        "conv.not_found": "Rozmowa '{name}' nie istnieje",
     },
     "tr-TR": {
         "header.help_hint": "Komut yardımı için '{command}' yazın",
@@ -1365,6 +1445,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} araç",
         "tools.no_tools": "Kullanılabilir araç yok",
         "display.back_hint": "Ana ekrana dönmek için Enter'a basın",
+        # ===== Sohbet seçim ekranı =====
+        "conv.title": "Sohbetler",
+        "conv.hint": "↑/↓ seç, Enter yükle, Esc geri",
+        "conv.loaded": "Sohbet yüklendi: {name}",
+        "conv.no_conversations": "Bu dizinde sohbet yok",
+        "conv.not_found": "'{name}' sohbeti bulunamadı",
     },
     "ar-SA": {
         "header.help_hint": "اكتب '{command}' للحصول على مساعدة الأوامر",
@@ -1461,6 +1547,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} أدوات",
         "tools.no_tools": "لا توجد أدوات متاحة",
         "display.back_hint": "اضغط Enter للعودة إلى الواجهة الرئيسية",
+        # ===== شاشة اختيار المحادثة =====
+        "conv.title": "المحادثات",
+        "conv.hint": "↑/↓ للاختيار، Enter للتحميل، Esc للرجوع",
+        "conv.loaded": "تم تحميل المحادثة: {name}",
+        "conv.no_conversations": "لا توجد محادثات في هذا الدليل",
+        "conv.not_found": "المحادثة '{name}' غير موجودة",
     },
     "th-TH": {
         "header.help_hint": "พิมพ์ '{command}' เพื่อดูวิธีใช้คำสั่ง",
@@ -1557,6 +1649,12 @@ TRANSLATIONS = {
         "tools.subtitle": "รวม {count} เครื่องมือ",
         "tools.no_tools": "ไม่มีเครื่องมือที่ใช้งานได้",
         "display.back_hint": "กด Enter เพื่อกลับสู่หน้าหลัก",
+        # ===== หน้าจอเลือกบทสนทนา =====
+        "conv.title": "บทสนทนา",
+        "conv.hint": "↑/↓ เลือก, Enter โหลด, Esc กลับ",
+        "conv.loaded": "โหลดบทสนทนาแล้ว: {name}",
+        "conv.no_conversations": "ไม่มีบทสนทนาในไดเรกทอรีนี้",
+        "conv.not_found": "ไม่พบบทสนทนา '{name}'",
     },
     "vi-VN": {
         "header.help_hint": "Nhập '{command}' để xem trợ giúp lệnh",
@@ -1653,6 +1751,12 @@ TRANSLATIONS = {
         "tools.subtitle": "Tổng cộng {count} công cụ",
         "tools.no_tools": "Không có công cụ khả dụng",
         "display.back_hint": "Nhấn Enter để quay lại màn hình chính",
+        # ===== Màn hình chọn hội thoại =====
+        "conv.title": "Hội thoại",
+        "conv.hint": "↑/↓ chọn, Enter tải, Esc quay lại",
+        "conv.loaded": "Đã tải hội thoại: {name}",
+        "conv.no_conversations": "Không có hội thoại trong thư mục này",
+        "conv.not_found": "Không tìm thấy hội thoại '{name}'",
     },
     "id-ID": {
         "header.help_hint": "Ketik '{command}' untuk bantuan perintah",
@@ -1749,6 +1853,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} alat",
         "tools.no_tools": "Tidak ada alat yang tersedia",
         "display.back_hint": "Tekan Enter untuk kembali ke antarmuka utama",
+        # ===== Layar pemilihan percakapan =====
+        "conv.title": "Percakapan",
+        "conv.hint": "↑/↓ pilih, Enter muat, Esc kembali",
+        "conv.loaded": "Percakapan dimuat: {name}",
+        "conv.no_conversations": "Tidak ada percakapan di direktori ini",
+        "conv.not_found": "Percakapan '{name}' tidak ditemukan",
     },
     "hi-IN": {
         "header.help_hint": "कमांड सहायता के लिए '{command}' टाइप करें",
@@ -1845,6 +1955,12 @@ TRANSLATIONS = {
         "tools.subtitle": "कुल {count} उपकरण",
         "tools.no_tools": "कोई उपकरण उपलब्ध नहीं",
         "display.back_hint": "मुख्य स्क्रीन पर लौटने के लिए Enter दबाएँ",
+        # ===== वार्तालाप चयन स्क्रीन =====
+        "conv.title": "वार्तालाप",
+        "conv.hint": "↑/↓ चुनें, Enter लोड करें, Esc वापस",
+        "conv.loaded": "वार्तालाप लोड हुआ: {name}",
+        "conv.no_conversations": "इस निर्देशिका में कोई वार्तालाप नहीं",
+        "conv.not_found": "वार्तालाप '{name}' नहीं मिला",
     },
     "sv-SE": {
         "header.help_hint": "Skriv '{command}' för kommandohjälp",
@@ -1941,6 +2057,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} verktyg",
         "tools.no_tools": "Inga verktyg tillgängliga",
         "display.back_hint": "Tryck på Enter för att återgå till huvudgränssnittet",
+        # ===== Skärm för konversationsval =====
+        "conv.title": "Konversationer",
+        "conv.hint": "↑/↓ välj, Enter ladda, Esc tillbaka",
+        "conv.loaded": "Konversation laddad: {name}",
+        "conv.no_conversations": "Inga konversationer i denna katalog",
+        "conv.not_found": "Konversationen '{name}' hittades inte",
     },
     "uk-UA": {
         "header.help_hint": "Введіть '{command}', щоб отримати довідку щодо команд",
@@ -2037,6 +2159,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} інструментів",
         "tools.no_tools": "Немає доступних інструментів",
         "display.back_hint": "Натисніть Enter, щоб повернутися до головного інтерфейсу",
+        # ===== Екран вибору розмови =====
+        "conv.title": "Розмови",
+        "conv.hint": "↑/↓ вибрати, Enter завантажити, Esc назад",
+        "conv.loaded": "Розмову завантажено: {name}",
+        "conv.no_conversations": "Немає розмов у цьому каталозі",
+        "conv.not_found": "Розмову '{name}' не знайдено",
     },
     "he-IL": {
         "header.help_hint": "הקלד '{command}' לקבלת עזרה בפקודות",
@@ -2133,6 +2261,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} כלים",
         "tools.no_tools": "אין כלים זמינים",
         "display.back_hint": "לחץ על Enter כדי לחזור לממשק הראשי",
+        # ===== מסך בחירת שיחה =====
+        "conv.title": "שיחות",
+        "conv.hint": "↑/↓ בחירה, Enter טעינה, Esc חזרה",
+        "conv.loaded": "השיחה נטענה: {name}",
+        "conv.no_conversations": "אין שיחות בספרייה זו",
+        "conv.not_found": "השיחה '{name}' לא נמצאה",
     },
     "cs-CZ": {
         "header.help_hint": "Napište '{command}' pro nápovědu k příkazům",
@@ -2229,6 +2363,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} nástrojů",
         "tools.no_tools": "Žádné dostupné nástroje",
         "display.back_hint": "Stiskněte Enter pro návrat na hlavní obrazovku",
+        # ===== Obrazovka výběru konverzace =====
+        "conv.title": "Konverzace",
+        "conv.hint": "↑/↓ vyberte, Enter načte, Esc zpět",
+        "conv.loaded": "Konverzace načtena: {name}",
+        "conv.no_conversations": "V tomto adresáři nejsou žádné konverzace",
+        "conv.not_found": "Konverzace '{name}' nebyla nalezena",
     },
     "hu-HU": {
         "header.help_hint": "Írja be: '{command}' a parancsok súgójához",
@@ -2325,6 +2465,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} eszköz",
         "tools.no_tools": "Nincs elérhető eszköz",
         "display.back_hint": "Nyomja meg az Enter billentyűt a fő felülethez való visszatéréshez",
+        # ===== Beszélgetésválasztó képernyő =====
+        "conv.title": "Beszélgetések",
+        "conv.hint": "↑/↓ válassz, Enter betölt, Esc vissza",
+        "conv.loaded": "Beszélgetés betöltve: {name}",
+        "conv.no_conversations": "Nincs beszélgetés ebben a könyvtárban",
+        "conv.not_found": "A '{name}' beszélgetés nem található",
     },
     "ro-RO": {
         "header.help_hint": "Tastați '{command}' pentru ajutor cu comenzile",
@@ -2421,6 +2567,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} instrumente",
         "tools.no_tools": "Niciun instrument disponibil",
         "display.back_hint": "Apăsați Enter pentru a reveni la interfața principală",
+        # ===== Ecran de selectare a conversației =====
+        "conv.title": "Conversații",
+        "conv.hint": "↑/↓ selectează, Enter încarcă, Esc înapoi",
+        "conv.loaded": "Conversație încărcată: {name}",
+        "conv.no_conversations": "Nicio conversație în acest director",
+        "conv.not_found": "Conversația '{name}' nu a fost găsită",
     },
     "da-DK": {
         "header.help_hint": "Skriv '{command}' for kommandohjælp",
@@ -2517,6 +2669,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} værktøjer",
         "tools.no_tools": "Ingen tilgængelige værktøjer",
         "display.back_hint": "Tryk på Enter for at vende tilbage til hovedgrænsefladen",
+        # ===== Skærm til valg af samtale =====
+        "conv.title": "Samtaler",
+        "conv.hint": "↑/↓ vælg, Enter indlæs, Esc tilbage",
+        "conv.loaded": "Samtale indlæst: {name}",
+        "conv.no_conversations": "Ingen samtaler i denne mappe",
+        "conv.not_found": "Samtalen '{name}' blev ikke fundet",
     },
     "fi-FI": {
         "header.help_hint": "Kirjoita '{command}' saadaksesi komentoapua",
@@ -2613,6 +2771,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} työkalua",
         "tools.no_tools": "Ei käytettävissä olevia työkaluja",
         "display.back_hint": "Paina Enter palataksesi pääkäyttöliittymään",
+        # ===== Keskustelun valintanäyttö =====
+        "conv.title": "Keskustelut",
+        "conv.hint": "↑/↓ valitse, Enter lataa, Esc takaisin",
+        "conv.loaded": "Keskustelu ladattu: {name}",
+        "conv.no_conversations": "Ei keskusteluja tässä hakemistossa",
+        "conv.not_found": "Keskustelua '{name}' ei löytynyt",
     },
     "nb-NO": {
         "header.help_hint": "Skriv '{command}' for kommandohjelp",
@@ -2709,6 +2873,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} verktøy",
         "tools.no_tools": "Ingen tilgjengelige verktøy",
         "display.back_hint": "Trykk Enter for å gå tilbake til hovedgrensesnittet",
+        # ===== Skjerm for samtalevalg =====
+        "conv.title": "Samtaler",
+        "conv.hint": "↑/↓ velg, Enter last inn, Esc tilbake",
+        "conv.loaded": "Samtale lastet inn: {name}",
+        "conv.no_conversations": "Ingen samtaler i denne katalogen",
+        "conv.not_found": "Samtalen '{name}' ble ikke funnet",
     },
     "ms-MY": {
         "header.help_hint": "Taip '{command}' untuk bantuan arahan",
@@ -2805,6 +2975,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} alat",
         "tools.no_tools": "Tiada alat tersedia",
         "display.back_hint": "Tekan Enter untuk kembali ke antara muka utama",
+        # ===== Skrin pemilihan perbualan =====
+        "conv.title": "Perbualan",
+        "conv.hint": "↑/↓ pilih, Enter muat, Esc kembali",
+        "conv.loaded": "Perbualan dimuat: {name}",
+        "conv.no_conversations": "Tiada perbualan dalam direktori ini",
+        "conv.not_found": "Perbualan '{name}' tidak ditemui",
     },
     "el-GR": {
         "header.help_hint": "Πληκτρολογήστε '{command}' για βοήθεια εντολών",
@@ -2901,6 +3077,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} εργαλεία",
         "tools.no_tools": "Δεν υπάρχουν διαθέσιμα εργαλεία",
         "display.back_hint": "Πατήστε Enter για επιστροφή στην κύρια διεπαφή",
+        # ===== Οθόνη επιλογής συνομιλίας =====
+        "conv.title": "Συνομιλίες",
+        "conv.hint": "↑/↓ επιλογή, Enter φόρτωση, Esc πίσω",
+        "conv.loaded": "Η συνομιλία φορτώθηκε: {name}",
+        "conv.no_conversations": "Δεν υπάρχουν συνομιλίες σε αυτόν τον κατάλογο",
+        "conv.not_found": "Η συνομιλία '{name}' δεν βρέθηκε",
     },
     "bg-BG": {
         "header.help_hint": "Въведете '{command}' за помощ с командите",
@@ -2997,6 +3179,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} инструмента",
         "tools.no_tools": "Няма налични инструменти",
         "display.back_hint": "Натиснете Enter, за да се върнете към основния интерфейс",
+        # ===== Екран за избор на разговор =====
+        "conv.title": "Разговори",
+        "conv.hint": "↑/↓ избор, Enter зареждане, Esc назад",
+        "conv.loaded": "Разговорът е зареден: {name}",
+        "conv.no_conversations": "Няма разговори в тази директория",
+        "conv.not_found": "Разговорът '{name}' не е намерен",
     },
     "sr-RS": {
         "header.help_hint": "Unesite '{command}' za pomoć o komandama",
@@ -3093,6 +3281,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} alata",
         "tools.no_tools": "Nema dostupnih alata",
         "display.back_hint": "Pritisnite Enter da se vratite na glavni interfejs",
+        # ===== Екран за избор разговора =====
+        "conv.title": "Разговори",
+        "conv.hint": "↑/↓ изабери, Enter учитај, Esc назад",
+        "conv.loaded": "Разговор је учитан: {name}",
+        "conv.no_conversations": "Нема разговора у овом директоријуму",
+        "conv.not_found": "Разговор '{name}' није пронађен",
     },
     "lt-LT": {
         "header.help_hint": "Įveskite '{command}' komandų pagalbai",
@@ -3189,6 +3383,12 @@ TRANSLATIONS = {
         "tools.subtitle": "Iš viso {count} įrankiai",
         "tools.no_tools": "Nėra prieinamų įrankių",
         "display.back_hint": "Paspauskite Enter, kad grįžtumėte į pagrindinį ekraną",
+        # ===== Pokalbio pasirinkimo ekranas =====
+        "conv.title": "Pokalbiai",
+        "conv.hint": "↑/↓ pasirinkite, Enter įkelti, Esc atgal",
+        "conv.loaded": "Pokalbis įkeltas: {name}",
+        "conv.no_conversations": "Šiame kataloge pokalbių nėra",
+        "conv.not_found": "Pokalbis '{name}' nerastas",
     },
     "fa-IR": {
         "header.help_hint": "'{command}' را برای راهنمای دستورات تایپ کنید",
@@ -3285,6 +3485,12 @@ TRANSLATIONS = {
         "tools.subtitle": "مجموع {count} ابزار",
         "tools.no_tools": "ابزاری در دسترس نیست",
         "display.back_hint": "برای بازگشت به صفحه اصلی Enter را فشار دهید",
+        # ===== صفحه انتخاب گفتگو =====
+        "conv.title": "گفتگوها",
+        "conv.hint": "↑/↓ انتخاب، Enter بارگذاری، Esc بازگشت",
+        "conv.loaded": "گفتگو بارگذاری شد: {name}",
+        "conv.no_conversations": "هیچ گفتگویی در این فهرست نیست",
+        "conv.not_found": "گفتگوی '{name}' یافت نشد",
     },
     "bn-BD": {
         "header.help_hint": "কমান্ড সাহায্যের জন্য '{command}' টাইপ করুন",
@@ -3381,6 +3587,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} টুল",
         "tools.no_tools": "কোনো টুল পাওয়া যায়নি",
         "display.back_hint": "মূল ইন্টারফেসে ফিরতে Enter চাপুন",
+        # ===== কথোপকথন নির্বাচন স্ক্রিন =====
+        "conv.title": "কথোপকথন",
+        "conv.hint": "↑/↓ নির্বাচন, Enter লোড, Esc ফিরে",
+        "conv.loaded": "কথোপকথন লোড হয়েছে: {name}",
+        "conv.no_conversations": "এই ডিরেক্টরিতে কোনো কথোপকথন নেই",
+        "conv.not_found": "কথোপকথন '{name}' পাওয়া যায়নি",
     },
     "tl-PH": {
         "header.help_hint": "I-type ang '{command}' para sa tulong sa utos",
@@ -3477,6 +3689,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} tool",
         "tools.no_tools": "Walang magagamit na tool",
         "display.back_hint": "Pindutin ang Enter upang bumalik sa pangunahing interface",
+        # ===== Screen ng pagpili ng usapan =====
+        "conv.title": "Mga Usapan",
+        "conv.hint": "↑/↓ pumili, Enter i-load, Esc bumalik",
+        "conv.loaded": "Na-load ang usapan: {name}",
+        "conv.no_conversations": "Walang mga usapan sa direktoryong ito",
+        "conv.not_found": "Hindi nahanap ang usapang '{name}'",
     },
     "sw-KE": {
         "header.help_hint": "Andika '{command}' kwa msaada wa amri",
@@ -3573,6 +3791,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} zana",
         "tools.no_tools": "Hakuna zana zinazopatikana",
         "display.back_hint": "Bonyeza Enter kurudi kwenye kiolesura kikuu",
+        # ===== Skrini ya kuchagua mazungumzo =====
+        "conv.title": "Mazungumzo",
+        "conv.hint": "↑/↓ chagua, Enter pakia, Esc rudi",
+        "conv.loaded": "Mazungumzo yamepakiwa: {name}",
+        "conv.no_conversations": "Hakuna mazungumzo katika saraka hii",
+        "conv.not_found": "Mazungumzo '{name}' hayakupatikana",
     },
     "ka-GE": {
         "header.help_hint": "აკრიფეთ '{command}' ბრძანებების დახმარებისთვის",
@@ -3669,6 +3893,12 @@ TRANSLATIONS = {
         "tools.subtitle": "{count} ხელსაწყო",
         "tools.no_tools": "ხელმისაწვდომი ხელსაწყოები არ არის",
         "display.back_hint": "მთავარ ინტერფეისში დასაბრუნებლად დააჭირეთ Enter-ს",
+        # ===== საუბრის არჩევის ეკრანი =====
+        "conv.title": "საუბრები",
+        "conv.hint": "↑/↓ არჩევა, Enter ჩატვირთვა, Esc უკან",
+        "conv.loaded": "საუბარი ჩაიტვირთა: {name}",
+        "conv.no_conversations": "ამ დირექტორიაში საუბრები არ არის",
+        "conv.not_found": "საუბარი '{name}' ვერ მოიძებნა",
     },
     "wenyan": {
         "header.help_hint": "輸入 '{command}' 以觀命令之術",
@@ -3765,6 +3995,12 @@ TRANSLATIONS = {
         "tools.subtitle": "共 {count} 器",
         "tools.no_tools": "無可用之器",
         "display.back_hint": "按 Enter 返主界面",
+        # ===== 對話選擇界面 =====
+        "conv.title": "對話錄",
+        "conv.hint": "↑/↓ 擇之，Enter 載之，Esc 返",
+        "conv.loaded": "已載對話: {name}",
+        "conv.no_conversations": "此目錄無有關聯之對話",
+        "conv.not_found": "對話 '{name}' 不可得",
     },
     "nyannyan": {
         "header.help_hint": "喵？输入 '{command}' 看看喵～ (=^･ω･^=)",
@@ -3861,5 +4097,11 @@ TRANSLATIONS = {
         "tools.subtitle": "共 {count} 个工具喵",
         "tools.no_tools": "没有可以用的工具喵",
         "display.back_hint": "按 Enter 回到主界面喵",
+        # ===== 對話選擇喵 =====
+        "conv.title": "對話喵",
+        "conv.hint": "↑/↓ 喵選，Enter 喵載，Esc 喵返",
+        "conv.loaded": "已喵載對話: {name}",
+        "conv.no_conversations": "喵目錄沒有對話喵",
+        "conv.not_found": "喵找不到對話 '{name}' 喵",
     },
 }
