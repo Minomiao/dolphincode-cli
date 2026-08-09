@@ -49,6 +49,7 @@ build_webapi.py
 build_main/
 dolphin-plat/
 package.py
+dist_dolphincode_cli/
 
 # Documentation
 
