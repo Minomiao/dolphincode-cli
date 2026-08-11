@@ -110,6 +110,8 @@ def show_skills():
 
             if skill_name.startswith("plugin-"):
                 result = state.chat_instance.plugin_loader.toggle_skill(skill_name, target_status)
+            elif skill_name.startswith("stdskill-"):
+                result = state.chat_instance.std_loader.toggle_skill(skill_name, target_status)
             else:
                 result = state.chat_instance.skill_mgr.toggle_skill(skill_name, target_status)
 

@@ -11,6 +11,7 @@ from modules.chater.context import ContextManager
 from modules.loader import mcp_manager
 from modules.loader import skill_manager
 from modules.loader import plugin_skill_loader
+from modules.loader import standard_skill_loader
 from modules.main_server.middleware import request_manager
 from modules.functions import backup_manager, powershell_manager
 from modules.bootstrap import constants
@@ -84,6 +85,8 @@ def _parse_display_name(tool_name: str, skill_mgr=None, plugin_loader=None) -> s
                     func = "_".join(parts[i:])
                     return f"{possible_skill}.{func}"
         return rest
+    elif tool_name.startswith("stdskill_"):
+        return tool_name[len("stdskill_"):]
     else:
         return tool_name
 
@@ -114,6 +117,7 @@ class DolphinChat:
         self.mcp_mgr = mcp_manager.get_mcp_manager()
         self.skill_mgr = skill_manager.get_skill_manager()
         self.plugin_loader = plugin_skill_loader.get_plugin_skill_loader()
+        self.std_loader = standard_skill_loader.get_standard_skill_loader()
         self.request_manager = request_manager.get_request_manager()
         
         self.backup_mgr = backup_manager.get_backup_manager()
@@ -133,6 +137,7 @@ class DolphinChat:
         self._tool_dispatch = [
             (lambda n: n.startswith("skill_"), self.skill_mgr.call_tool),
             (lambda n: n.startswith("plugin_"), self.plugin_loader.call_tool),
+            (lambda n: n.startswith("stdskill_"), self.std_loader.call_tool),
             (lambda n: "_" in n, self.mcp_mgr.call_tool),
         ]
 
@@ -326,6 +331,10 @@ class DolphinChat:
             # 添加插件技能工具
             plugin_tools = self.plugin_loader.get_all_tools()
             self.tools.extend(plugin_tools)
+
+            # 添加标准技能工具
+            std_tools = self.std_loader.get_all_tools()
+            self.tools.extend(std_tools)
         log.debug(f"更新工具列表: 共 {len(self.tools)} 个工具")
     
     def reset_work_directory(self):
@@ -946,8 +955,10 @@ class DolphinChat:
         self._update_tools()
     
     def list_skills(self):
-        # 合并普通技能和插件技能
+        # 合并普通技能、插件技能和标准技能
         skills = self.skill_mgr.list_skills()
         plugin_skills = self.plugin_loader.list_skills()
         skills.extend(plugin_skills)
+        std_skills = self.std_loader.list_skills()
+        skills.extend(std_skills)
         return skills
