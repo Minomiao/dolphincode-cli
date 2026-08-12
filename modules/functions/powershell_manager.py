@@ -317,7 +317,11 @@ def _close_transports(proc_info: dict) -> None:
 
 
 async def _wait_for_task_with_timeout(task: asyncio.Task, name: str, command_id: str, timeout: int = 30) -> None:
-    """等待异步任务完成，超时则 cancel 防止永久挂起"""
+    """等待异步任务完成，超时则 cancel 防止永久挂起。
+
+    兼容取消竞态：若内层读取任务被外部清理（_auto_kill_background/_close_transports）
+    抢先取消，视为任务已完成，避免 CancelledError 向上击穿整个调用链。
+    """
     try:
         await asyncio.wait_for(task, timeout=timeout)
     except asyncio.TimeoutError:
@@ -327,6 +331,13 @@ async def _wait_for_task_with_timeout(task: asyncio.Task, name: str, command_id:
             await task
         except asyncio.CancelledError:
             pass
+    except asyncio.CancelledError:
+        current = asyncio.current_task()
+        if current is not None and current.cancelling() > 0:
+            raise  # 外层任务自身被取消（如 Ctrl+C），正常传播
+        # 内层任务被外部清理取消（竞态），视为已完成
+        log.debug(f"Task {name} 已被外部取消，视为完成: command_id={command_id}")
+        return
 
 
 async def _auto_kill_background(command_id: str, delay: int = MAX_BACKGROUND_LIFETIME) -> None:
@@ -400,7 +411,7 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
                 "exit_code": process.returncode,
                 "output": stdout
             })
-            del _running_processes[command_id]
+            _running_processes.pop(command_id, None)
 
             elapsed = time.time() - exec_start
             log.info(f"命令完成: command_id={command_id}, returncode={process.returncode}, 耗时={elapsed:.3f}s")
@@ -484,7 +495,7 @@ async def check_script(command_id: str, wait_time: int = DEFAULT_WAIT_TIME) -> D
             "exit_code": return_code,
             "output": stdout
         })
-        del _running_processes[command_id]
+        _running_processes.pop(command_id, None)
 
         elapsed = time.time() - check_start
         log.info(f"命令完成: command_id={command_id}, returncode={return_code}, 耗时={elapsed:.3f}s")
@@ -552,7 +563,7 @@ def kill_command(command_id: str) -> Dict[str, Any]:
         "exit_code": exit_code,
         "output": stdout if stdout else "(命令已被强制终止)"
     })
-    del _running_processes[command_id]
+    _running_processes.pop(command_id, None)
 
     log.info(f"命令已强制终止: command_id={command_id}, exit_code={exit_code}")
 
