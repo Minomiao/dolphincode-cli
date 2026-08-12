@@ -33,7 +33,6 @@ skills/*/__init__.py
 beta/
 modules/old_version/
 .gitignore
-stdskills/
 
 
 # Build files
