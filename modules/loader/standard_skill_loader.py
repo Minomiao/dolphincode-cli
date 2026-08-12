@@ -175,6 +175,8 @@ class StandardSkillLoader(BaseSkillLoader):
             "folder": skill_info.get("folder", ""),
             "hint": "请阅读 instructions 并按步骤执行；如需运行 scripts/ 下的脚本，"
                     "请使用 powershell_executor 的 run_script 工具。",
+            # 用户可见输出：终端显示为 [skills]<技能名>，并跳过 --工具调用/--结果 的全文刷屏
+            "user_output": {"label": "skills", "content": skill_name},
         }
 
     def list_skills(self) -> list:
