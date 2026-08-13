@@ -143,6 +143,40 @@ def _build_interrupted_response(tool_name, arguments):
     }, ensure_ascii=False)
 
 
+def _build_recovered_user_output(tool_name, arguments):
+    """为恢复补全的工具消息生成简约 user_output 标签。
+
+    让历史回显走精简标签而非冗长 JSON 结果：
+    - 文件类工具标记 "Recovered"（结果由当前磁盘状态推断）
+    - 其余工具标记 "Interrupted"（原始结果已丢失，需 AI 重新评估）
+    """
+    file_path = arguments.get("file_path", "")
+    filename = os.path.basename(file_path) if file_path else (tool_name or "?")
+
+    if "read_file" in tool_name:
+        return {"label": "Read", "parts": [
+            {"text": f"--{file_path or '?'}"},
+            {"text": "Recovered", "style": "yellow"},
+        ]}
+
+    if "delete_file" in tool_name:
+        return {"label": "File Change", "parts": [
+            {"text": f"--{filename}"},
+            {"text": "Recovered", "style": "yellow"},
+        ]}
+
+    if _is_file_tool(tool_name):
+        return {"label": "File Change", "parts": [
+            {"text": filename},
+            {"text": "Recovered", "style": "yellow"},
+        ]}
+
+    return {"label": "Recovered", "parts": [
+        {"text": tool_name or "?"},
+        {"text": "Interrupted", "style": "red"},
+    ]}
+
+
 def repair_conversation_messages(messages, work_dir=None):
     repaired = []
     repaired_count = 0
@@ -191,7 +225,8 @@ def repair_conversation_messages(messages, work_dir=None):
             repaired.append({
                 "role": "tool",
                 "tool_call_id": tc_id,
-                "content": result
+                "content": result,
+                "user_output": _build_recovered_user_output(tool_name, arguments),
             })
             log.warning(f"对话修复: 补全丢失的工具调用结果 [{tool_name}] -> {tc_id}")
 
