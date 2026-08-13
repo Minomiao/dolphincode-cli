@@ -1,132 +1,125 @@
 ---
 name: skill-installer
-description: 当用户要求安装、下载、导入或创建一个新的标准技能<Agent Skills / SKILL.md 格式>到项目的 stdskills 目录时使用。也适用于从技能合集<如 GitHub 仓库、Codex 技能目录>中挑选并放置技能的场景。
+description: Use when the user asks to install, download, import, or create a new standard skill (Agent Skills / SKILL.md format) into the project's stdskills directory. Also applies when picking skills from a collection (e.g., a GitHub repository or the local Codex skills directory). Prefer performing creation and installation programmatically via the skill_stdskill_helper tools.
 ---
 
-# 技能安装与创建指南
+# Skill Installation and Creation Guide
 
-本项目使用标准 Agent Skills 格式<SKILL.md>，技能统一存放在**项目根目录下的 `stdskills/` 文件夹**中。
-本技能指导如何把一个新技能放到 `stdskills/`，或在这里直接创建新技能。
+This project uses the standard Agent Skills format (SKILL.md). Skills live in the **`stdskills/` folder at the project root**. This skill explains how to install or create a standard skill under `stdskills/`. **All file operations are performed by the `skill_stdskill_helper` tools; do not manually read or write `stdskills/` with file_manager.** The tools handle validation, deduplication, and scaffold cleanup.
 
-## 核心规则<所有技能必须遵守>
+## Core Rules (mandatory for every skill)
 
-1. **目录**：每个技能一个文件夹，路径为 `stdskills/<技能名>/`
-2. **入口文件**：`SKILL.md`，必须以 YAML frontmatter 开头<以 `---` 包裹>，其中必须包含：
-   - `name`：小写字母、数字、连字符<`[a-z0-9-]`>，**不允许下划线或空格**；建议与文件夹名一致
-   - `description`：一句话说明**何时使用**该技能<这是模型决定是否调用的唯一依据>
-3. **命名唯一**：`stdskills/` 内技能名<frontmatter `name`>不得重复，重复会被加载器跳过并在日志中警告
-4. **生效时机**：加载器在程序启动时扫描，**新技能需重启 Dolphin 后才注册为工具**<工具名为 `stdskill_<name>`>
-5. **不得破坏他人**：不要修改、删除 `stdskills/` 中已有的其他技能
+1. **Directory**: one folder per skill at `stdskills/<skill-name>/`
+2. **Entry file**: `SKILL.md` must start with a YAML frontmatter (wrapped in `---`) containing:
+   - `name`: lowercase letters, digits, hyphens (`[a-z0-9-]`); **no underscores or spaces**; prefer matching the folder name
+   - `description`: one sentence explaining **when to use** the skill (this is the only signal the model uses to decide whether to call it)
+3. **Unique names**: skill names (frontmatter `name`) must not repeat inside `stdskills/`; duplicates are skipped
+4. **Activation**: the loader scans at startup; **a new skill registers as a tool (named `stdskill_<name>`) only after Dolphin restarts**
+5. **Do not break others**: never modify or delete existing skills under `stdskills/`
 
-## 方式一：下载技能到 stdskills
+## Option 1: Install an external skill
 
-适用场景：从 GitHub、技能合集仓库、或本地 Codex 技能目录<`~/.codex/skills/`>获取现成技能。
+Applies when fetching a ready-made skill from GitHub, a skill collection repository, or the local Codex skills directory (`~/.codex/skills/`).
 
-### 步骤
+### Steps
 
-1. **定位技能**：在来源中找到含 `SKILL.md` 的技能文件夹。常见来源：
-   - GitHub 技能合集仓库<如 `anthropics/skills`、各种 agent-skill 市场>，技能通常在 `skills/<技能名>/SKILL.md`
-   - 本地 Codex：`~/.codex/skills/<技能名>/SKILL.md`
-   - 任意"整包"合集<如下载解压后的 `xxx-main/` 仓库>，其下每个子技能在 `skills/<技能名>/SKILL.md`
-2. **下载/解压到临时位置**<如 `beta/` 或系统临时目录>，不要直接下载进 `stdskills/`
-3. **只复制技能文件夹本体**：将 `skills/<技能名>`<即 `SKILL.md` + 可选的 `scripts/`、`assets/`、`references/`、`reference/` 子目录>复制为 `stdskills/<技能名>/`
-4. **丢弃仓库脚手架**：不要复制 `.git/`、`.github/`、`.claude-plugin/`、仓库根 `README.md`、`LICENSE`、`skill.sh`、构建脚本、展示素材<`assets/` 仅当技能自身需要时才保留>等
-5. **校验**<见下方"校验清单">
+1. **Prepare the source**: download/unpack the collection to a temporary location (e.g., `beta/` or the system temp dir); never put it directly into `stdskills/`. Common layouts:
+   - Single skill folder: contains `SKILL.md` directly
+   - Skill collection repo (e.g., `anthropics/skills`): skills under `skills/<skill-name>/SKILL.md`
+   - Packaged repo (e.g., `xxx-main/` after download): same layout, `skills/<skill-name>/SKILL.md`
+2. **Install via tool**: call `skill_stdskill_helper_install_skill` with `source` set to the **absolute path** of the source folder. The tool automatically:
+   - Finds every `SKILL.md` recursively (single / collection / packaged repo all work)
+   - Parses the frontmatter name and validates its format
+   - Copies only the skill folder itself and discards repository scaffolding (`.git`, `.github`, `.claude-plugin`, README, LICENSE, etc.)
+   - Skips skills whose name already exists
+3. **Check the result**: the tool returns three lists: `installed`, `skipped`, `failed`; confirm there are no unexpected failures
+4. **Verify**: call `skill_stdskill_helper_list_skills` to confirm the skill now appears
+5. **Tell the user**: the new skill takes effect after Dolphin restarts, as tool `stdskill_<skill-name>`
 
-## 方式二：创建新技能到 stdskills
+## Option 2: Create a new skill
 
-适用场景：用户想要一个全新的能力，现有技能无法覆盖。
+Applies when the user wants a brand-new capability not covered by existing skills.
 
-### 最小结构
+### Steps
 
-```
-stdskills/<技能名>/
-└── SKILL.md
-```
+1. **Define metadata**: confirm `name` and `description` with the user:
+   - `name`: hyphen-separated words (e.g., `file-organizer`), short and descriptive
+   - `description`: phrased as "Use when the user needs ..."; state the trigger scenario; do not describe implementation details
+2. **Write the body**: follow the quality guidelines below
+3. **Create via tool**: call `skill_stdskill_helper_create_skill` with:
+   - `name`: the skill name
+   - `description`: a one-sentence trigger description
+   - `content`: the SKILL.md body (without frontmatter; the tool generates it). If you pass a complete SKILL.md text (starting with `---`), it is used as-is
+   - `overwrite`: set to true only if the name already exists and the user explicitly wants to overwrite
+4. **Tell the user**: the new skill takes effect after Dolphin restarts, as tool `stdskill_<skill-name>`
 
-### SKILL.md 模板
+## How to Write a Good SKILL.md Body (prompt quality guidelines)
 
-```markdown
----
-name: my-skill
-description: 一句话说明何时使用该技能，包含触发场景与适用任务类型。
----
+The body is the prompt the model reads; its quality determines the skill's effectiveness. Distilled from the prompt cases under `beta/` on this machine:
 
-# 技能说明
+1. **Specific beats vague** — every instruction must be actionable:
+   - Correct: "List all files in the target directory with file_manager, sorted by modification time descending"
+   - Incorrect: "Look at the files"
+2. **Give executable steps** — describe the process with numbered steps, not just conclusions:
+   - Correct: "1. Read the target file -> 2. Inspect key fields -> 3. Summarize into a table"
+   - Incorrect: "Analyze the code and give feedback"
+3. **Specify the output format** — state the structure and presentation of results (sections, tables, `[skills]` label, etc.)
+4. **Cover edge cases** — describe how to handle unusual scenarios: no results, permission errors, missing directories, oversized input, etc.
+5. **Make quality measurable** — define what "good" means (e.g., "every finding includes a file:line reference")
+6. **Address the model directly** — use "You need to ...", not "This skill will ..."
+7. **Trigger with verbs in the description** — start the frontmatter `description` with verbs (start / run / build / test / generate ...), since it is scanned to decide whether to call the skill
+8. **Self-test when done** — could a model that has never seen the current conversation complete the task from the body alone?
 
-为模型提供逐步操作指南：
-- 触发条件：何时使用、何时不使用
-- 执行步骤：Step 1 / Step 2 ...
-- 注意事项与最佳实践
-- 若需要脚本，写明如何运行<见下方"脚本说明">
-```
+## Optional Subdirectories
 
-### 命名与描述建议
-
-- `name` 用连字符分词<如 `file-organizer`>，简短描述能力
-- `description` 采用"当用户需要……时使用"句式，明确触发场景；不要描述实现细节
-
-### 如何写好 SKILL.md 正文<提示词质量准则>
-
-正文就是写给模型看的提示词，质量直接决定技能效果。参考本机 `beta/` 下的提示词案例提炼：
-
-1. **具体胜过笼统** — 每条指令都要可执行：
-   - Correct: "用 file_manager 列出目标目录所有文件，按修改时间倒序"
-   - Incorrect: "查看文件"
-2. **给出可执行步骤** — 用编号步骤描述过程，而不是只下结论：
-   - Correct: "1. 读取目标文件 → 2. 检查关键字段 → 3. 汇总为表格"
-   - Incorrect: "分析代码并给出反馈"
-3. **明确输出格式** — 说明结果的结构与呈现方式<分节、表格、`[skills]` 标签等>
-4. **覆盖边界情况** — 写明异常场景的处理：无结果、权限不足、目录不存在、输入过大等
-5. **质量标准可度量** — 定义"好"的标准<如"每个发现都含 文件:行号 引用">
-6. **第二人称直呼模型** — 用"你需要…"，不要"本技能将…"
-7. **描述用动词触发** — frontmatter 的 `description` 用动词<开始/运行/构建/测试/生成…>，因为这是模型决定是否调用该技能的扫描依据
-8. **写完自测** — 仅凭正文，一个没看过当前对话的模型能否独立完成任务？
-
-### 可选子目录
-
-| 目录 | 用途 |
+| Directory | Purpose |
 |---|---|
-| `scripts/` | 可执行脚本，供模型用 `powershell_executor` 的 `run_script` 运行 |
-| `assets/` | 技能所需的静态资源 |
-| `references/` 或 `reference/` | 补充文档，正文中引用 |
+| `scripts/` | Executable scripts, run by the model via `powershell_executor`'s `run_script` |
+| `assets/` | Static resources required by the skill |
+| `references/` or `reference/` | Supplementary docs referenced in the body |
 
-## 校验清单<下载或创建后必须执行>
+When installing an external skill, these subdirectories are copied along with the skill folder (only if the skill needs them).
 
-- [ ] `stdskills/<技能名>/SKILL.md` 存在，且以 `---` 开头
-- [ ] frontmatter 含 `name`<`[a-z0-9-]`>和 `description`
-- [ ] `stdskills/` 中无同名技能<frontmatter `name` 不重复>
-- [ ] 未带入仓库脚手架<`.git`、`.github`、`.claude-plugin`、仓库 README 等>
-- [ ] 已告知用户：新技能需重启 Dolphin 后生效，工具名为 `stdskill_<技能名>`
+## Checklist (run after install or create)
 
-## 示例
+- [ ] Tool returned `success: true` with no `failed` entries
+- [ ] The `installed` list contains the expected skill name (or `skipped` notes it already exists)
+- [ ] `skill_stdskill_helper_list_skills` confirms the skill is present
+- [ ] Told the user: the new skill takes effect after Dolphin restarts, as tool `stdskill_<skill-name>`
 
-以创建一个"批量重命名文件"技能为例：
+## Examples
+
+Install a GitHub collection:
 
 ```
-stdskills/file-organizer/
-└── SKILL.md
-
-# SKILL.md 内容
----
-name: file-organizer
-description: 当用户需要按规则批量重命名或整理文件夹中的文件时使用。
----
-
-# 文件整理
-
-1. 用 file_manager 列出目标目录所有文件
-2. 与用户确认重命名规则<前缀、编号、扩展名分组等>
-3. 逐文件执行重命名，完成后用 [skills] 标签输出结果摘要
+1. Download and unpack the repo into beta/ (e.g., beta/skills-repo-main/)
+2. Call skill_stdskill_helper_install_skill(source="D:\codes\QuickAI\beta\skills-repo-main")
+3. Returns: installed=["design-taste-frontend", "minimalist-ui"], skipped=[], failed=[]
+4. Verify with skill_stdskill_helper_list_skills
+5. Tell the user: restart to enable stdskill_design-taste-frontend etc.
 ```
 
-## 参考资料<仅本机，`beta/` 不入库>
+Create a "batch file rename" skill:
 
-编写提示词时可参考本机 `beta/` 下的案例与教程：
+```
+1. Confirm with the user: name="file-organizer", description="Use when the user needs to batch-rename or organize files in a directory by rules"
+2. Write the body:
+   1. List all files in the target directory with file_manager
+   2. Confirm the rename rules with the user (prefix, numbering, extension grouping, etc.)
+   3. Rename file by file, then summarize the result with the [skills] label
+3. Call skill_stdskill_helper_create_skill(name="file-organizer",
+     description="Use when the user needs to batch-rename or organize files in a directory by rules",
+     content="1. List all files in the target directory with file_manager\n2. Confirm the rename rules with the user\n3. Rename file by file, then summarize the result with the [skills] label")
+4. Tell the user: restart to enable stdskill_file-organizer
+```
 
-- `beta/system-prompt-design.md` — 系统提示词设计模式完整指南<核心结构、4 类 Agent 模式、写法规范、常见坑、长度与测试建议>
-- `beta/system-prompts/system-prompt-writing-subagent-prompts.md` — 委派类提示词的写法要点
-- `beta/system-prompts/skill-run-skill-template.md` — 具体技能模板示例<含 description 动词建议>
-- `beta/system-prompts/` 下的 `system-prompt-*`、`agent-prompt-*`、`skill-*` 等数百个真实案例可对照学习
+## References (local only; `beta/` is not tracked)
 
-注意：`beta/` 已被 gitignore，其他机器上可能不存在，引用前先确认路径存在；本技能正文中的准则已自包含，不依赖这些文件。
+When writing prompts you may consult the cases and tutorials under `beta/` on this machine:
+
+- `beta/system-prompt-design.md` — full guide to system prompt design patterns (core structure, 4 agent modes, style rules, common pitfalls, length & testing advice)
+- `beta/system-prompts/system-prompt-writing-subagent-prompts.md` — key points for writing delegation-style prompts
+- `beta/system-prompts/skill-run-skill-template.md` — concrete skill template example (includes description verb advice)
+- `beta/system-prompts/` — hundreds of real cases (`system-prompt-*`, `agent-prompt-*`, `skill-*`) for reference
+
+Note: `beta/` is gitignored and may not exist on other machines; check the path before referencing. The guidelines in this skill are self-contained and do not depend on those files.
