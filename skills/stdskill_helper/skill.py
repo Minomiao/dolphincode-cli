@@ -1,21 +1,23 @@
 """
 标准技能助手（stdskill_helper）。
 
-程序化辅助标准技能（Agent Skills / SKILL.md 格式）的创建与安装：
-- 创建：生成合法 frontmatter，写入 stdskills/<技能名>/SKILL.md
+程序化辅助标准技能（Agent Skills / SKILL.md 与 skill.yaml 格式）的创建与安装：
+- 创建：生成合法定义文件，写入 stdskills/<技能名>/（SKILL.md 或 skill.yaml）
 - 安装：从外部来源（GitHub 合集、Codex 技能目录、整包仓库）自动识别并复制到 stdskills/
 - 列出：扫描 stdskills/ 下已安装的标准技能
 
-与 standard_skill_loader 的加载约定保持一致：frontmatter name 去重、
-跳过脚手架目录（.git/.github/.claude-plugin 等）。
+与 standard_skill_loader 的加载约定保持一致：定义文件支持 SKILL.md / skill.yaml / skill.yml，
+frontmatter name 去重、跳过脚手架目录（.git/.github/.claude-plugin 等）。
 """
 import os
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 _SKILL_NAME_RE = re.compile(r"^[a-z0-9-]+$")
+# 技能定义文件，按优先级顺序查找（同一文件夹只取第一个）
+_DEFINITION_FILES = ("SKILL.md", "skill.yaml", "skill.yml")
 # 安装时忽略的脚手架目录/文件
 _SCAFFOLD_DIRS = {".git", ".github", ".claude-plugin", "__pycache__",
                   ".venv", "venv", "node_modules", ".idea", ".vscode", "dist", "build"}
@@ -46,6 +48,50 @@ def _parse_skill_md(content: str) -> Dict[str, Any]:
     }
 
 
+def _parse_skill_yaml(content: str) -> Dict[str, Any]:
+    """解析 skill.yaml / skill.yml，返回 {name, description, body}。
+
+    格式：YAML 顶层映射，name 为技能名，description 为技能说明，
+    instructions（或 body）为正文使用说明。
+    """
+    import yaml
+    data = yaml.safe_load(content) or {}
+    if not isinstance(data, dict):
+        raise ValueError("skill.yaml 必须是 YAML 映射")
+    return {
+        "name": data.get("name"),
+        "description": data.get("description"),
+        "body": data.get("instructions") or data.get("body") or "",
+    }
+
+
+def _definition_file(folder: Path) -> Optional[Path]:
+    """按优先级返回技能文件夹的定义文件（SKILL.md / skill.yaml / skill.yml），找不到返回 None。"""
+    for fname in _DEFINITION_FILES:
+        f = folder / fname
+        if f.is_file():
+            return f
+    return None
+
+
+def _parse_definition(skill_file: Path) -> Dict[str, Any]:
+    """按文件类型解析技能定义文件。"""
+    content = skill_file.read_text(encoding="utf-8")
+    if skill_file.name.lower().endswith((".yaml", ".yml")):
+        return _parse_skill_yaml(content)
+    return _parse_skill_md(content)
+
+
+def _is_complete_yaml_definition(content: str) -> bool:
+    """判断文本是否为完整的 skill.yaml 定义（顶层 YAML 映射且含 name 字段）。"""
+    try:
+        import yaml
+        data = yaml.safe_load(content)
+    except Exception:
+        return False
+    return isinstance(data, dict) and bool(data.get("name"))
+
+
 def _valid_name(name: str) -> bool:
     """校验标准技能名：小写字母/数字/连字符，不以连字符开头或结尾，长度 ≤ 64。"""
     return bool(_SKILL_NAME_RE.match(name)) and not name.startswith("-") \
@@ -53,20 +99,25 @@ def _valid_name(name: str) -> bool:
 
 
 def _existing_skill_names() -> Dict[str, Path]:
-    """扫描 stdskills/ 下所有 SKILL.md，返回 {技能名: SKILL.md 路径}（跳过 _/. 开头的目录）。"""
+    """扫描 stdskills/ 下所有技能定义文件，返回 {技能名: 定义文件路径}（跳过 _/. 开头的目录）。"""
     names = {}
     skills_dir = _stdskills_dir()
     if not skills_dir.exists():
         return names
-    for skill_file in skills_dir.rglob("SKILL.md"):
-        rel_parts = skill_file.parent.relative_to(skills_dir).parts
-        if any(p.startswith(("_", ".")) for p in rel_parts):
+    folders = [skills_dir] + [p for p in skills_dir.rglob("*") if p.is_dir()]
+    for folder in folders:
+        if folder != skills_dir:
+            rel_parts = folder.relative_to(skills_dir).parts
+            if any(p.startswith(("_", ".")) for p in rel_parts):
+                continue
+        skill_file = _definition_file(folder)
+        if skill_file is None:
             continue
         try:
-            parsed = _parse_skill_md(skill_file.read_text(encoding="utf-8"))
+            parsed = _parse_definition(skill_file)
         except Exception:
             parsed = {"name": None}
-        names.setdefault(parsed.get("name") or skill_file.parent.name, skill_file)
+        names.setdefault(parsed.get("name") or folder.name, skill_file)
     return names
 
 
@@ -82,13 +133,13 @@ def _err(context, message: str) -> Dict[str, Any]:
 
 skill_info = {
     "name": "stdskill_helper",
-    "description": "标准技能助手：程序化创建 SKILL.md 标准技能到项目 stdskills/ 目录，"
+    "description": "标准技能助手：程序化创建 SKILL.md / skill.yaml 标准技能到项目 stdskills/ 目录，"
                    "或将外部标准技能（GitHub 合集、Codex 技能目录、整包仓库）自动安装到 stdskills/。"
                    "也支持列出已安装的标准技能。",
     "functions": {
         "create_skill": {
-            "description": "创建一个新的标准技能（Agent Skills / SKILL.md 格式）到项目 stdskills/ 目录。"
-                           "自动生成合法 frontmatter，校验技能名格式并做重名检查。"
+            "description": "创建一个新的标准技能（Agent Skills / SKILL.md 或 skill.yaml 格式）到项目 stdskills/ 目录。"
+                           "自动生成合法定义文件，校验技能名格式并做重名检查。"
                            "新技能需重启 Dolphin 后生效，工具名为 stdskill_<技能名>。",
             "parameters": {
                 "type": "object",
@@ -97,18 +148,22 @@ skill_info = {
                                                               "不得含下划线或空格，不能以连字符开头或结尾，长度不超过 64"},
                     "description": {"type": "string", "description": "一句话说明何时使用该技能（模型决定是否调用的唯一依据），"
                                                                      "应包含触发场景与适用任务类型"},
-                    "content": {"type": "string", "description": "SKILL.md 正文（不含 frontmatter），写给模型看的逐步操作指南；"
-                                                                 "若传入完整 SKILL.md 文本（以 --- 开头）则原样采用"},
-                    "overwrite": {"type": "boolean", "description": "同名技能已存在时是否覆盖，默认 false"}
+                    "content": {"type": "string", "description": "SKILL.md 正文或 skill.yaml 的 instructions 正文"
+                                                                 "（写给模型看的逐步操作指南）；"
+                                                                 "若传入完整定义文件文本则原样采用"},
+                    "overwrite": {"type": "boolean", "description": "同名技能已存在时是否覆盖，默认 false"},
+                    "format": {"type": "string", "description": "定义文件格式：'md' 生成 SKILL.md（默认），"
+                                                                "'yaml' 生成 skill.yaml"}
                 },
                 "required": ["name", "description", "content"]
             }
         },
         "install_skill": {
             "description": "从外部路径自动安装标准技能到 stdskills/ 目录。支持三种来源："
-                           "单个技能文件夹（直接含 SKILL.md）、技能合集目录（含多个 skills/<名>/SKILL.md）、"
+                           "单个技能文件夹（直接含 SKILL.md 或 skill.yaml/skill.yml）、"
+                           "技能合集目录（含多个 skills/<名>/<定义文件>）、"
                            "整包仓库根目录（下载解压后的 xxx-main/）。"
-                           "自动解析 frontmatter 技能名、跳过仓库脚手架（.git/.github/.claude-plugin 等）、"
+                           "自动解析定义文件中的技能名、跳过仓库脚手架（.git/.github/.claude-plugin 等）、"
                            "对已存在的技能自动去重跳过。",
             "parameters": {
                 "type": "object",
@@ -132,12 +187,13 @@ skill_info = {
 
 
 def create_skill(context, name: str, description: str, content: str,
-                 overwrite: bool = False) -> Dict[str, Any]:
+                 overwrite: bool = False, format: str = "md") -> Dict[str, Any]:
     """创建标准技能到 stdskills/。"""
     try:
         name = (name or "").strip()
         description = (description or "").strip()
         content = (content or "").strip()
+        format = (format or "md").strip().lower()
 
         if not _valid_name(name):
             return _err(context, f"技能名不合法: '{name}'，须为小写字母/数字/连字符，"
@@ -146,6 +202,8 @@ def create_skill(context, name: str, description: str, content: str,
             return _err(context, "description 不能为空")
         if not content:
             return _err(context, "content 不能为空")
+        if format not in ("md", "yaml"):
+            return _err(context, f"format 不合法: '{format}'，仅支持 'md'（SKILL.md）或 'yaml'（skill.yaml）")
 
         skills_dir = _stdskills_dir()
         skills_dir.mkdir(parents=True, exist_ok=True)
@@ -155,15 +213,24 @@ def create_skill(context, name: str, description: str, content: str,
             return _err(context, f"标准技能 '{name}' 已存在（来源: {existing[name].parent}），"
                                  f"如需覆盖请设置 overwrite=True")
 
-        # 传入完整 SKILL.md 则原样采用，否则自动生成 frontmatter
-        if content.startswith("---"):
-            skill_text = content
-        else:
-            skill_text = f"---\nname: {name}\ndescription: {description}\n---\n\n{content}\n"
-
+        # 传入完整定义文件则原样采用，否则自动生成
         skill_folder = skills_dir / name
-        skill_file = skill_folder / "SKILL.md"
         skill_folder.mkdir(parents=True, exist_ok=True)
+        if format == "yaml":
+            skill_file = skill_folder / "skill.yaml"
+            if _is_complete_yaml_definition(content):
+                skill_text = content
+            else:
+                import yaml as _yaml
+                skill_text = _yaml.safe_dump(
+                    {"name": name, "description": description, "instructions": content},
+                    allow_unicode=True, sort_keys=False, default_flow_style=False)
+        else:
+            skill_file = skill_folder / "SKILL.md"
+            if content.startswith("---"):
+                skill_text = content
+            else:
+                skill_text = f"---\nname: {name}\ndescription: {description}\n---\n\n{content}\n"
         skill_file.write_text(skill_text, encoding="utf-8")
 
         context.log_info(f"创建标准技能成功: {name} -> {skill_file}")
@@ -199,14 +266,11 @@ def install_skill(context, source: str) -> Dict[str, Any]:
         except ValueError:
             pass
 
-        # 定位所有 SKILL.md：单个技能文件夹直接命中，合集/整包递归查找
-        candidate_files = []
-        direct = src / "SKILL.md"
-        if direct.exists():
-            candidate_files.append(direct)
-        candidate_files.extend(p for p in src.rglob("SKILL.md") if p != direct)
+        # 定位所有技能定义文件：单个技能文件夹直接命中，合集/整包递归查找
+        candidate_files = [p for p in src.rglob("*")
+                           if p.is_file() and p.name.lower() in _DEFINITION_FILES]
         if not candidate_files:
-            return _err(context, f"来源中未找到任何 SKILL.md: {src}")
+            return _err(context, f"来源中未找到任何技能定义文件 (SKILL.md / skill.yaml / skill.yml): {src}")
 
         existing = _existing_skill_names()
         installed, skipped, failed = [], [], []
@@ -217,7 +281,7 @@ def install_skill(context, source: str) -> Dict[str, Any]:
             if any(p.startswith(("_", ".")) or p in _SCAFFOLD_DIRS for p in rel_parts):
                 continue
             try:
-                parsed = _parse_skill_md(skill_file.read_text(encoding="utf-8"))
+                parsed = _parse_definition(skill_file)
             except Exception as e:
                 failed.append(f"{skill_folder.name}: 解析失败 {e}")
                 continue
@@ -260,7 +324,7 @@ def list_skills(context) -> Dict[str, Any]:
         items = []
         for name, skill_file in sorted(existing.items()):
             try:
-                parsed = _parse_skill_md(skill_file.read_text(encoding="utf-8"))
+                parsed = _parse_definition(skill_file)
                 description = parsed.get("description", "")
             except Exception as e:
                 description = f"（读取失败: {e}）"

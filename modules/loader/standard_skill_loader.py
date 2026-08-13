@@ -1,9 +1,11 @@
 """
 标准技能加载器。
-加载符合 Agent Skills 标准（SKILL.md）的技能，与现有 skill.py 体系完全分离：
-- 目录：stdskills/ 下任意层级包含 SKILL.md 的文件夹（自动递归识别，支持合集仓库整包放入）
-- SKILL.md 以 YAML frontmatter 开头（name、description），正文为使用说明
-- 每个标准技能注册为一个工具 stdskill_<skill_name>，调用时返回 SKILL.md 正文（按需注入）
+加载符合 Agent Skills 标准的技能，与现有 skill.py 体系完全分离：
+- 目录：stdskills/ 下任意层级包含技能定义文件的文件夹（自动递归识别，支持合集仓库整包放入）
+- 定义文件支持三种，同一文件夹按优先级取第一个：
+  - SKILL.md：YAML frontmatter（name、description）+ Markdown 正文
+  - skill.yaml / skill.yml：纯 YAML 定义（name、description、instructions/body）
+- 每个标准技能注册为一个工具 stdskill_<skill_name>，调用时返回正文（按需注入）
 - 技能名允许包含连字符，工具名内不做转换
 """
 import os
@@ -17,6 +19,9 @@ from modules import bootstrap as app_paths
 from .base_loader import BaseSkillLoader
 
 log = get_logger("Dolphin.standard_skill_loader")
+
+# 技能定义文件，按优先级顺序查找（同一文件夹只取第一个）
+_DEFINITION_FILES = ("SKILL.md", "skill.yaml", "skill.yml")
 
 
 class StandardSkillLoader(BaseSkillLoader):
@@ -45,12 +50,13 @@ class StandardSkillLoader(BaseSkillLoader):
             self.skills_dir.mkdir(parents=True, exist_ok=True)
             return
 
-        for skill_file in self.skills_dir.rglob("SKILL.md"):
-            skill_folder = skill_file.parent
-            # 跳过名称以 _ 或 . 开头的目录（含祖先目录，如 .git、_draft、.claude-plugin）
-            rel_parts = skill_folder.relative_to(self.skills_dir).parts
-            if any(part.startswith(("_", ".")) for part in rel_parts):
-                continue
+        folders = [self.skills_dir] + [p for p in self.skills_dir.rglob("*") if p.is_dir()]
+        for skill_folder in folders:
+            if skill_folder != self.skills_dir:
+                # 跳过名称以 _ 或 . 开头的目录（含祖先目录，如 .git、_draft、.claude-plugin）
+                rel_parts = skill_folder.relative_to(self.skills_dir).parts
+                if any(part.startswith(("_", ".")) for part in rel_parts):
+                    continue
 
             try:
                 self._load_skill_folder(skill_folder)
@@ -59,7 +65,7 @@ class StandardSkillLoader(BaseSkillLoader):
                 self.failed_skills[skill_folder.name] = error_msg
                 log.error(f"加载标准技能 {skill_folder.name} 失败: {error_msg}")
             except (yaml.YAMLError, KeyError, ValueError) as e:
-                error_msg = f"SKILL.md 解析错误: {str(e)}"
+                error_msg = f"定义文件解析错误: {str(e)}"
                 self.failed_skills[skill_folder.name] = error_msg
                 log.error(f"加载标准技能 {skill_folder.name} 失败: {error_msg}")
             except Exception as e:
@@ -69,14 +75,17 @@ class StandardSkillLoader(BaseSkillLoader):
 
     def _load_skill_folder(self, skill_folder: Path):
         log.debug(f"加载标准技能文件夹: {skill_folder.name}")
-        skill_file = skill_folder / "SKILL.md"
+        skill_file = self._find_definition_file(skill_folder)
 
-        if not skill_file.exists():
-            log.debug(f"跳过 {skill_folder.name}: 没有 SKILL.md 文件")
+        if skill_file is None:
+            log.debug(f"跳过 {skill_folder.name}: 没有 SKILL.md / skill.yaml / skill.yml")
             return
 
         content = skill_file.read_text(encoding="utf-8")
-        name, description, body = self._parse_skill_md(content)
+        if skill_file.name.lower().endswith((".yaml", ".yml")):
+            name, description, body = self._parse_skill_yaml(content)
+        else:
+            name, description, body = self._parse_skill_md(content)
 
         if not name:
             name = skill_folder.name
@@ -95,6 +104,28 @@ class StandardSkillLoader(BaseSkillLoader):
             "functions": {},
         }
         log.info(f"标准技能加载成功: {name}")
+
+    def _find_definition_file(self, skill_folder: Path) -> Optional[Path]:
+        """按优先级返回技能定义文件（SKILL.md / skill.yaml / skill.yml），找不到返回 None。"""
+        for fname in _DEFINITION_FILES:
+            skill_file = skill_folder / fname
+            if skill_file.is_file():
+                return skill_file
+        return None
+
+    def _parse_skill_yaml(self, content: str) -> tuple:
+        """解析 skill.yaml / skill.yml，返回 (name, description, body)。
+
+        格式：YAML 顶层映射，name 为技能名，description 为技能说明，
+        instructions（或 body）为正文使用说明。
+        """
+        data = yaml.safe_load(content) or {}
+        if not isinstance(data, dict):
+            raise ValueError("skill.yaml 必须是 YAML 映射")
+
+        return (data.get("name"),
+                data.get("description"),
+                data.get("instructions") or data.get("body") or "")
 
     def _parse_skill_md(self, content: str) -> tuple:
         """解析 SKILL.md，返回 (name, description, body)。

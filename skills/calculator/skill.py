@@ -38,8 +38,8 @@ def calculate(expression: str) -> Dict[str, Any]:
     if not HAS_SYMPY:
         return {
             "success": False,
-            "error": "sympy 未安装，请运行 pip install sympy",
-            "user_output": {"label": "Calculator", "parts": [{"text": expression, "style": "gray"}, {"text": "Error", "style": "red"}]}
+            "error": "sympy is not installed, please run pip install sympy",
+            "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
 
     try:
@@ -55,19 +55,19 @@ def calculate(expression: str) -> Dict[str, Any]:
             "success": True,
             "expression": expression,
             "result": result,
-            "user_output": {"label": "Calculator", "parts": [{"text": expression, "style": "gray"}, {"text": str(result)}]}
+            "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": f"= {result}", "style": "green"}]}
         }
     except SympifyError:
         return {
             "success": False,
-            "error": f"无法解析表达式: {expression}",
-            "user_output": {"label": "Calculator", "parts": [{"text": expression, "style": "gray"}, {"text": "Error", "style": "red"}]}
+            "error": f"Unable to parse expression: {expression}",
+            "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
     except Exception as e:
         return {
             "success": False,
-            "error": f"计算失败: {str(e)}",
-            "user_output": {"label": "Calculator", "parts": [{"text": expression, "style": "gray"}, {"text": "Error", "style": "red"}]}
+            "error": f"Calculation failed: {str(e)}",
+            "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
 
 
