@@ -71,6 +71,9 @@ main_cli.py
 main_gui.py
 modules/main_server/app_engine.py
 
+# Tests
+tests/
+
 #embedding
 models/bge-small-zh-v1.5/
 models
