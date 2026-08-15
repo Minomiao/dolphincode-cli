@@ -639,7 +639,18 @@ class DolphinChat:
         kwargs.setdefault("extra_body", {})
         kwargs["extra_body"]["thinking"] = {"type": "enabled"}
 
-    async def chat(self, user_input):
+    async def chat(self, user_input, max_tool_rounds: int = 10):
+        """发起一次非流式对话，返回最终回复文本。
+
+        模型请求工具时持续执行工具回合，直到模型给出最终回复或达到 max_tool_rounds 上限。
+
+        Args:
+            user_input: 用户输入
+            max_tool_rounds: 工具回合数上限（避免无限循环）
+
+        Returns:
+            AI 最终回复文本
+        """
         log.info(f"开始聊天 (非流式): 输入长度={len(user_input)}")
         chat_start = time.perf_counter()
 
@@ -659,30 +670,12 @@ class DolphinChat:
         
         self._apply_effort_params(kwargs)
         
-        api_start = time.perf_counter()
-        response = self.client.chat.completions.create(**kwargs)
-        api_elapsed = time.perf_counter() - api_start
-        log.info(f"API 调用完成 (非流式): 耗时={api_elapsed:.3f}s")
-        # 保存 API 返回的精确 token 用量
-        if hasattr(response, 'usage') and response.usage:
-            self.context.update_usage_from_api(response.usage)
-        assistant_message = response.choices[0].message
-        
-        reasoning = None
-        if hasattr(assistant_message, 'model_extra') and assistant_message.model_extra:
-            reasoning = assistant_message.model_extra.get('reasoning_content')
-        
-        if reasoning:
-            log.debug(f"思考过程长度: {len(reasoning)}")
-            log_thinking(reasoning)
-            await self._call_callback('thinking', {
-                'content': reasoning
-            })
-        
+        assistant_message, reasoning = await self._api_call(kwargs, "非流式")
         tool_calls = assistant_message.tool_calls
-        
-        if tool_calls:
-            log.info(f"检测到 {len(tool_calls)} 个工具调用")
+        rounds = 0
+        while tool_calls and rounds < max_tool_rounds:
+            rounds += 1
+            log.info(f"检测到 {len(tool_calls)} 个工具调用 (第 {rounds} 轮)")
             tool_calls_list = [
                 {
                     "id": tc.id,
@@ -699,14 +692,11 @@ class DolphinChat:
             await self._run_tool_calls(tool_calls_list)
 
             kwargs["messages"] = self.context.prepare_messages(self.messages)
-            api_start = time.perf_counter()
-            response = self.client.chat.completions.create(**kwargs)
-            api_elapsed = time.perf_counter() - api_start
-            log.info(f"API 调用完成 (非流式, 工具后): 耗时={api_elapsed:.3f}s")
-            # 保存 API 返回的精确 token 用量
-            if hasattr(response, 'usage') and response.usage:
-                self.context.update_usage_from_api(response.usage)
-            assistant_message = response.choices[0].message
+            assistant_message, reasoning = await self._api_call(kwargs, "非流式, 工具后")
+            tool_calls = assistant_message.tool_calls
+
+        if tool_calls:
+            log.warning(f"达到工具回合上限 {max_tool_rounds}，返回当前回复")
 
         final_content = assistant_message.content or ""
         total_elapsed = time.perf_counter() - chat_start
@@ -719,7 +709,31 @@ class DolphinChat:
         await self._check_context_usage()
 
         return final_content
-    
+
+    async def _api_call(self, kwargs, tag):
+        """调用一次 API，记录 token 用量与思考过程，返回 assistant_message 与 reasoning。"""
+        api_start = time.perf_counter()
+        response = self.client.chat.completions.create(**kwargs)
+        api_elapsed = time.perf_counter() - api_start
+        log.info(f"API 调用完成 ({tag}): 耗时={api_elapsed:.3f}s")
+        # 保存 API 返回的精确 token 用量
+        if hasattr(response, 'usage') and response.usage:
+            self.context.update_usage_from_api(response.usage)
+        assistant_message = response.choices[0].message
+
+        reasoning = None
+        if hasattr(assistant_message, 'model_extra') and assistant_message.model_extra:
+            reasoning = assistant_message.model_extra.get('reasoning_content')
+
+        if reasoning:
+            log.debug(f"思考过程长度: {len(reasoning)}")
+            log_thinking(reasoning)
+            await self._call_callback('thinking', {
+                'content': reasoning
+            })
+
+        return assistant_message, reasoning
+
     async def _process_stream(self, stream):
         full_response = ""
         full_reasoning = ""
