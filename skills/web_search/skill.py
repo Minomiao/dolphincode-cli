@@ -3,6 +3,8 @@ import requests
 import os
 import warnings
 import logging
+import ipaddress
+from urllib.parse import urlparse
 
 from typing import Dict, Any, List, Set
 
@@ -293,9 +295,32 @@ def search(context, query: str, num_results: int = None) -> Dict[str, Any]:
 
 # ---- 网页解析 ----
 
+def _is_safe_url(url: str) -> bool:
+    """校验 URL 是否允许抓取，防止 SSRF（拒绝私网/环回/链路本地地址）。"""
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    try:
+        ip = ipaddress.ip_address(parsed.hostname)
+    except ValueError:
+        return True  # 域名不做解析校验
+    return not (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_multicast or ip.is_reserved)
+
+
 def fetch(context, url: str) -> Dict[str, Any]:
     """解析指定网址的网页内容。"""
     try:
+        if not _is_safe_url(url):
+            return {
+                "error": f"不允许抓取的地址: {url}",
+                "url": url,
+                "content": "",
+                "user_output": {"label": "Fetch", "parts": [{"text": f'"{url}"'}, {"text": "- Error", "style": "gray"}]}
+            }
         resp = requests.get(url, headers=_HEADERS, timeout=15)
         resp.raise_for_status()
         html = resp.text

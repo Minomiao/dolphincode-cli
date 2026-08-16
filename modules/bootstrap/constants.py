@@ -95,6 +95,10 @@ DANGEROUS_PATTERNS = [
     r'\bfrombase64string\b.*\biex\b',
     r'\bfrombase64string\b.*\bstart-process\b',
 
+    # ===== 解释器调用（可绕过黑名单执行任意命令）=====
+    r'\b(?:python|python3|py|pyw)\s+[-/]\s*c\b',
+    r'\b(?:powershell|pwsh|cmd|bash|sh|zsh)\s+[-/]\s*(?:c|k|command|encodedcommand|e)\b',
+
     # ===== 字符串拼接/变量拼接绕过 =====
     # 检测 "In"+"voke" 类拼接，或 [char] 拼接构造危险命令
     r'[\'"](?:i|in|inv|invo|invok|invoke)[\'"]\s*\+\s*[\'"]',

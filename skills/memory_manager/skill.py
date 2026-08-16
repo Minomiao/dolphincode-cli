@@ -32,8 +32,16 @@ def _index_file(context) -> Path:
 
 
 def _doc_path(context, doc_name: str) -> Path:
-    """返回记忆文档路径。"""
-    return _memory_dir(context) / doc_name
+    """返回记忆文档路径，并校验其必须位于 Dmemory 目录内，防止路径穿越。
+
+    Raises:
+        ValueError: 文档路径越界（被 index.json 篡改时触发）
+    """
+    memory_root = _memory_dir(context).resolve()
+    path = (memory_root / doc_name).resolve()
+    if not path.is_relative_to(memory_root):
+        raise ValueError(f"记忆文档路径越界: {doc_name}")
+    return path
 
 
 def _set_folder_hidden(context, folder: Path) -> None:
@@ -124,7 +132,7 @@ def _write_doc(context, doc_name: str, content: str) -> bool:
         _save_folder(context)
         with open(_doc_path(context, doc_name), 'w', encoding='utf-8') as f:
             f.write(content)
-    except (OSError, PermissionError) as e:
+    except (OSError, PermissionError, ValueError) as e:
         context.log_warning(f"保存记忆文档失败: {doc_name}: {e}")
         return False
     return True
@@ -135,7 +143,7 @@ def _read_doc(context, doc_name: str) -> str:
     try:
         with open(_doc_path(context, doc_name), 'r', encoding='utf-8') as f:
             return f.read()
-    except (OSError, PermissionError) as e:
+    except (OSError, PermissionError, ValueError) as e:
         context.log_warning(f"读取记忆文档失败: {doc_name}: {e}")
         return ""
 
@@ -146,7 +154,7 @@ def _delete_doc(context, doc_name: str) -> None:
         path = _doc_path(context, doc_name)
         if path.exists():
             path.unlink()
-    except OSError as e:
+    except (OSError, ValueError) as e:
         context.log_warning(f"删除记忆文档失败: {doc_name}: {e}")
 
 

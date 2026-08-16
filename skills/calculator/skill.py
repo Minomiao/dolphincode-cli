@@ -1,4 +1,5 @@
 import datetime
+import re
 from typing import Dict, Any
 
 try:
@@ -6,6 +7,14 @@ try:
     HAS_SYMPY = True
 except ImportError:
     HAS_SYMPY = False
+
+# 仅允许数学表达式常用字符；禁止下划线（阻止 __import__ 等内建访问）与字符串字面量
+_SAFE_EXPR_PATTERN = re.compile(r'^[0-9a-zA-Z+\-*/().,%^<>=!\s]+$')
+
+
+def _is_safe_expression(expression: str) -> bool:
+    """校验表达式仅包含数学常用字符，防止注入任意代码。"""
+    return bool(_SAFE_EXPR_PATTERN.fullmatch(expression))
 
 
 skill_info = {
@@ -40,6 +49,13 @@ def calculate(expression: str) -> Dict[str, Any]:
         return {
             "success": False,
             "error": "sympify 未安装，请运行 pip install sympy",
+            "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
+        }
+
+    if not _is_safe_expression(expression):
+        return {
+            "success": False,
+            "error": f"表达式包含不允许的字符: {expression}",
             "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
 
