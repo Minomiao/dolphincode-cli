@@ -252,7 +252,7 @@ def chat_callback(event_type, data):
             print(f"\n{Fore.YELLOW}警告: {content}{Style.RESET_ALL}")
         else:
             print(f"\n{Fore.GREEN}信息: {content}{Style.RESET_ALL}")
-    elif event_type == 'max_iterations_reached':
+    elif event_type == constants.EVENT_MAX_ITERATIONS_REACHED:
         current_iterations = data.get('iterations', 0)
         hard_limit = data.get('hard_limit', 100)
         remaining = hard_limit - current_iterations

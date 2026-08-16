@@ -13,6 +13,7 @@ from modules.logger import get_logger
 from modules.main_server import config
 from modules.main_server.middleware import request_manager
 from modules.main_server.middleware.request_manager import _run_async
+from modules.bootstrap import constants
 
 log = get_logger("Dolphin.ai_caller")
 
@@ -21,7 +22,7 @@ def _headless_callback(event_type, data):
     """非交互式回调：自动决策所有需要用户介入的事件。"""
     if event_type == 'user_input_required':
         return data.get('default_value') or ""
-    if event_type in ('confirmation_required', 'max_iterations_reached'):
+    if event_type in ('confirmation_required', constants.EVENT_MAX_ITERATIONS_REACHED):
         return 'n'
     return None
 

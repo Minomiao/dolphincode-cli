@@ -439,11 +439,7 @@ class DolphinChat:
 
             if isinstance(result, dict):
                 # 拦截 set_work_directory 成功结果，同步更新 AI 临时工作目录
-                if result.get("success") and "set_work_directory" in tool_name and result.get("work_directory"):
-                    self.current_work_directory = result["work_directory"]
-                    request_manager.set_ai_work_directory(result["work_directory"])
-                    self.skill_mgr.set_work_dir(result["work_directory"])
-                    log.info(f"AI 临时工作目录已更新: {self.current_work_directory}")
+                self._sync_work_directory(result, tool_name)
                 result_str = json.dumps(result, ensure_ascii=False)
             else:
                 result_str = str(result)
@@ -458,6 +454,15 @@ class DolphinChat:
     
     async def _execute_powershell_script(self, script: str, timeout: int = 30, wait_time: int = 10) -> dict:
         return await powershell_manager.execute_script(script, timeout, wait_time)
+
+    def _sync_work_directory(self, result: dict, tool_name: str) -> None:
+        """若工具成功切换工作目录，同步更新 AI 临时工作目录与技能管理器。"""
+        if not (result.get("success") and "set_work_directory" in tool_name and result.get("work_directory")):
+            return
+        self.current_work_directory = result["work_directory"]
+        request_manager.set_ai_work_directory(result["work_directory"])
+        self.skill_mgr.set_work_dir(result["work_directory"])
+        log.info(f"AI 临时工作目录已更新: {self.current_work_directory}")
 
     async def _handle_auto_execute(self, result_dict: dict) -> tuple:
         """处理 auto_execute 请求，直接执行 PowerShell 脚本"""
@@ -517,7 +522,7 @@ class DolphinChat:
         log.info(f"用户确认操作: {tool_name}")
         await self._call_callback('operation_confirmed', {})
 
-        if result_dict.get('action') == 'run_powershell_script' and result_dict.get('script'):
+        if result_dict.get('action') == constants.ACTION_RUN_POWERSHELL_SCRIPT and result_dict.get('script'):
             ps_timeout = result_dict.get('timeout', 30)
             ps_wait = result_dict.get('wait_time', 10)
             ps_result = await self._execute_powershell_script(result_dict['script'], ps_timeout, ps_wait)
@@ -733,7 +738,7 @@ class DolphinChat:
 
         return assistant_message, reasoning
 
-    async def _process_stream(self, stream):
+    async def _process_stream(self, stream) -> tuple:
         full_response = ""
         full_reasoning = ""
         tool_calls_buffer = {}
@@ -834,14 +839,9 @@ class DolphinChat:
         self._apply_effort_params(kwargs)
         
         api_start = time.perf_counter()
-        stream = self.client.chat.completions.create(**kwargs)
-        full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage = await self._process_stream(stream)
+        full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage = await self._call_stream_and_parse(kwargs)
         api_elapsed = time.perf_counter() - api_start
         log.info(f"API 流式调用完成: 耗时={api_elapsed:.3f}s")
-
-        # 保存 API 返回的精确 token 用量
-        if last_usage:
-            self.context.update_usage_from_api(last_usage)
 
         if full_reasoning:
             log_thinking(full_reasoning)
@@ -857,55 +857,7 @@ class DolphinChat:
             self._clear_stream_buffer()
 
             await self._run_tool_calls(tool_calls)
-
-            max_iterations = INITIAL_MAX
-            iteration = 1
-
-            while iteration < min(max_iterations, MAX_HARD_LIMIT):
-                iteration += 1
-                log.debug(f"工具调用迭代 {iteration}/{max_iterations} (hard limit: {MAX_HARD_LIMIT})")
-
-                kwargs["messages"] = self.context.prepare_messages(self.messages)
-                kwargs["stream"] = True
-                stream = self.client.chat.completions.create(**kwargs)
-
-                full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage = await self._process_stream(stream)
-
-                # 保存 API 返回的精确 token 用量
-                if last_usage:
-                    self.context.update_usage_from_api(last_usage)
-
-                if full_reasoning:
-                    log_thinking(f"[迭代 {iteration}] {full_reasoning}")
-                if has_tool_calls and tool_calls_buffer:
-                    tool_calls = list(tool_calls_buffer.values())
-                    log.info(f"迭代 {iteration}: 检测到 {len(tool_calls)} 个工具调用")
-                    self.add_message("assistant", full_response or "", tool_calls, reasoning_content=full_reasoning)
-                    self._clear_stream_buffer()
-
-                    await self._run_tool_calls(tool_calls)
-
-                    if iteration >= max_iterations:
-                        if iteration >= MAX_HARD_LIMIT:
-                            break
-                        log.info(f"达到当前迭代上限 {max_iterations}，询问用户是否继续")
-                        result = await self._call_callback('max_iterations_reached', {
-                            'iterations': iteration,
-                            'max_iterations': max_iterations,
-                            'hard_limit': MAX_HARD_LIMIT
-                        })
-                        if result == 'y':
-                            max_iterations = min(max_iterations + EXTEND_BY, MAX_HARD_LIMIT)
-                            log.info(f"用户确认续期，新上限: {max_iterations}")
-                            continue
-                        else:
-                            log.info("用户选择不继续迭代")
-                            break
-                    continue
-                else:
-                    self.add_message("assistant", full_response, reasoning_content=full_reasoning)
-                    self._clear_stream_buffer()
-                    break
+            await self._run_tool_iterations(kwargs)
 
         # 缓冲应已在上一条消息提交后清空，此处兜底清理
         self._clear_stream_buffer()
@@ -918,6 +870,61 @@ class DolphinChat:
         total_elapsed = time.perf_counter() - chat_start
         log.info(f"流式聊天完成: 响应长度={len(full_response)}, 总耗时={total_elapsed:.3f}s")
         return full_response
+
+    async def _call_stream_and_parse(self, kwargs: dict) -> tuple:
+        """调用一次流式 API 并解析响应，返回 (full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage)。"""
+        stream = self.client.chat.completions.create(**kwargs)
+        full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage = await self._process_stream(stream)
+
+        # 保存 API 返回的精确 token 用量
+        if last_usage:
+            self.context.update_usage_from_api(last_usage)
+        return full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage
+
+    async def _run_tool_iterations(self, kwargs: dict) -> None:
+        """工具调用迭代循环：执行工具后继续请求模型，直至无工具调用或达到迭代上限。"""
+        max_iterations = INITIAL_MAX
+        iteration = 1
+
+        while iteration < min(max_iterations, MAX_HARD_LIMIT):
+            iteration += 1
+            log.debug(f"工具调用迭代 {iteration}/{max_iterations} (hard limit: {MAX_HARD_LIMIT})")
+
+            kwargs["messages"] = self.context.prepare_messages(self.messages)
+            kwargs["stream"] = True
+            full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage = await self._call_stream_and_parse(kwargs)
+
+            if full_reasoning:
+                log_thinking(f"[迭代 {iteration}] {full_reasoning}")
+            if has_tool_calls and tool_calls_buffer:
+                tool_calls = list(tool_calls_buffer.values())
+                log.info(f"迭代 {iteration}: 检测到 {len(tool_calls)} 个工具调用")
+                self.add_message("assistant", full_response or "", tool_calls, reasoning_content=full_reasoning)
+                self._clear_stream_buffer()
+
+                await self._run_tool_calls(tool_calls)
+
+                if iteration >= max_iterations:
+                    if iteration >= MAX_HARD_LIMIT:
+                        break
+                    log.info(f"达到当前迭代上限 {max_iterations}，询问用户是否继续")
+                    result = await self._call_callback(constants.EVENT_MAX_ITERATIONS_REACHED, {
+                        'iterations': iteration,
+                        'max_iterations': max_iterations,
+                        'hard_limit': MAX_HARD_LIMIT
+                    })
+                    if result == 'y':
+                        max_iterations = min(max_iterations + EXTEND_BY, MAX_HARD_LIMIT)
+                        log.info(f"用户确认续期，新上限: {max_iterations}")
+                        continue
+                    else:
+                        log.info("用户选择不继续迭代")
+                        break
+                continue
+            else:
+                self.add_message("assistant", full_response, reasoning_content=full_reasoning)
+                self._clear_stream_buffer()
+                break
     
     def clear_history(self):
         self.messages = []

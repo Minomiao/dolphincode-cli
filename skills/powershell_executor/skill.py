@@ -76,7 +76,7 @@ def run_script(context, script: str, timeout: int = None, wait_time: int = None)
 
             result = context.require_confirmation(
                 message=message,
-                action="run_powershell_script",
+                action=context.constants.ACTION_RUN_POWERSHELL_SCRIPT,
                 script=script,
                 timeout=actual_timeout,
                 wait_time=actual_wait
@@ -90,7 +90,7 @@ def run_script(context, script: str, timeout: int = None, wait_time: int = None)
             context.log_info(f"安全脚本，自动执行 (长度: {script_length} 字符)")
             return {
                 "auto_execute": True,
-                "action": "run_powershell_script",
+                "action": context.constants.ACTION_RUN_POWERSHELL_SCRIPT,
                 "script": script,
                 "timeout": actual_timeout,
                 "wait_time": actual_wait,

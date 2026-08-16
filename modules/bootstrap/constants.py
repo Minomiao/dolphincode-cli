@@ -119,6 +119,10 @@ STREAM_MAX_HARD_LIMIT = 100
 STREAM_INITIAL_MAX = 30
 STREAM_EXTEND_BY = 20
 
+# ===== 回调事件与动作标识 =====
+EVENT_MAX_ITERATIONS_REACHED = "max_iterations_reached"
+ACTION_RUN_POWERSHELL_SCRIPT = "run_powershell_script"
+
 # ===== DPC 对话控制文件 =====
 DPC_FILENAME = ".dpc"
 FILE_ATTRIBUTE_HIDDEN = 0x2
