@@ -94,7 +94,7 @@ def search_files(context, pattern: str, directory: str = ".", search_in_content:
                 files_searched += 1
                 try:
                     file_size = file_path.stat().st_size
-                    if file_size > MAX_FILE_SIZE:
+                    if file_size > context.constants.MAX_FILE_SIZE:
                         continue
                     if not context.is_path_allowed(str(file_path)).get("allowed"):
                         continue
@@ -117,10 +117,10 @@ def search_files(context, pattern: str, directory: str = ".", search_in_content:
                             "matches": matched_lines,
                             "match_count": len(matched_lines)
                         })
-                        if len(results) >= MAX_SEARCH_RESULTS:
+                        if len(results) >= context.constants.MAX_SEARCH_RESULTS:
                             break
-                except Exception:
-                    pass
+                except Exception as e:
+                    context.log_warning(f"搜索文件内容失败: {file_path}: {e}")
         else:
             for file_path in search_path.rglob("*"):
                 if not file_path.is_file():

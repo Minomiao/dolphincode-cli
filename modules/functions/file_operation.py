@@ -194,7 +194,7 @@ class FileOperation:
             encoding = request_data.get('encoding', 'utf-8')
             offset = request_data.get('offset', 0)
             # limit 采用 100 行冗余设计：对外声明 1000 行，实际默认 1100 行
-            limit = request_data.get('limit', 1100)
+            limit = request_data.get('limit', MAX_LINE_COUNT)
             work_directory = request_data.get('work_directory')
             
             if not file_path:

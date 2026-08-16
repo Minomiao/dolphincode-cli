@@ -35,7 +35,7 @@ _bg_cleanup_tasks: set = set()
 _shutdown_started = False
 
 # 后台进程最长存活时间（秒），超时自动清理防止泄漏
-MAX_BACKGROUND_LIFETIME = 600  # 10分钟
+MAX_BACKGROUND_LIFETIME = constants.MAX_BACKGROUND_LIFETIME
 
 
 class CommandCacheManager:
@@ -252,6 +252,7 @@ class _DummySock:
 
 
 def _get_work_dir():
+    """获取 PowerShell 命令执行的工作目录，失败时回退为 'workplace'。"""
     try:
         from modules.main_server import config
         return config.load_config().get('work_directory', 'workplace')
@@ -260,6 +261,7 @@ def _get_work_dir():
 
 
 async def _read_stream(stream: asyncio.StreamReader, buffer: list, max_chars: int = MAX_OUTPUT_LENGTH):
+    """读取流内容到缓冲区，最多读取 max_chars 个字符。"""
     total = 0
     while total < max_chars:
         try:
@@ -277,6 +279,7 @@ async def _read_stream(stream: asyncio.StreamReader, buffer: list, max_chars: in
 
 
 def _close_transports(proc_info: dict) -> None:
+    """关闭进程相关传输并取消读取任务，避免连接泄漏。"""
     process = proc_info['process']
     try:
         proc_info['stdout_task'].cancel()
@@ -528,6 +531,7 @@ async def check_script(command_id: str, wait_time: int = DEFAULT_WAIT_TIME) -> D
 
 
 def kill_command(command_id: str) -> Dict[str, Any]:
+    """强制终止指定命令的后台进程并返回其输出。"""
     # 先检查缓存
     cached_result = _cache_manager.get(command_id)
     if cached_result is not None:
@@ -575,6 +579,7 @@ def kill_command(command_id: str) -> Dict[str, Any]:
 
 
 def _cleanup_all_processes():
+    """清理所有正在运行的后台进程并清空缓存（退出时调用）。"""
     for cid, proc_info in list(_running_processes.items()):
         try:
             process = proc_info['process']
@@ -604,17 +609,17 @@ def _signal_handler(signum, frame):
     raise SystemExit(0)
 
 
-def get_cache_stats() -> Dict[str, Any]:
-    """获取缓存统计信息（供调试和监控使用）"""
-    return _cache_manager.get_stats()
-
-
-def cleanup_expired_cache() -> int:
-    """手动清理过期的持久化缓存"""
-    return _cache_manager.cleanup_expired_persistent()
-
-
 async def _start_process(script: str, work_path: Path, command_id: str = ""):
+    """启动 PowerShell 进程执行脚本。
+
+    Args:
+        script: 要执行的 PowerShell 脚本
+        work_path: 进程工作目录
+        command_id: 命令标识，用于日志
+
+    Returns:
+        asyncio 子进程对象
+    """
     wrapper = (
         f'[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n'
         f'$ErrorActionPreference = "Continue"\n'

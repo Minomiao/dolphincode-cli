@@ -13,6 +13,14 @@ FILE_ATTRIBUTE_HIDDEN = constants.FILE_ATTRIBUTE_HIDDEN
 
 
 def _read_raw(work_dir):
+    """读取 .dpc 文件的原始数据。
+
+    Args:
+        work_dir: 工作目录
+
+    Returns:
+        解析后的字典数据；文件不存在或损坏时返回 None
+    """
     dpc_path = os.path.join(work_dir, DPC_FILENAME)
     if not os.path.exists(dpc_path):
         return None
@@ -25,6 +33,7 @@ def _read_raw(work_dir):
 
 
 def _set_hidden(path):
+    """为指定路径设置 Windows 隐藏属性。"""
     if os.name == 'nt':
         attrs = ctypes.windll.kernel32.GetFileAttributesW(path)
         ctypes.windll.kernel32.SetFileAttributesW(path, attrs | FILE_ATTRIBUTE_HIDDEN)
@@ -38,6 +47,7 @@ def _remove_hidden(path):
 
 
 def _write_raw(work_dir, data):
+    """将数据写入 .dpc 文件并设置为隐藏。"""
     dpc_path = os.path.join(work_dir, DPC_FILENAME)
     _remove_hidden(dpc_path)
     with open(dpc_path, 'w', encoding='utf-8') as f:
@@ -75,6 +85,7 @@ def _migrate_old_format(data):
 
 
 def get_dir_id(work_dir):
+    """获取工作目录的 dir_id。"""
     data = _read_raw(work_dir)
     if data is None:
         return None
@@ -110,6 +121,7 @@ def ensure_dir_id(work_dir):
 
 
 def get_conversations(work_dir):
+    """获取工作目录下的对话列表。"""
     data = _read_raw(work_dir)
     if data is None:
         return []
@@ -118,6 +130,7 @@ def get_conversations(work_dir):
 
 
 def get_current(work_dir):
+    """获取当前对话的 (id, name)；无对话时返回 (None, None)。"""
     data = _read_raw(work_dir)
     if data is None:
         return None, None
@@ -132,6 +145,7 @@ def get_current(work_dir):
 
 
 def get_name_by_id(work_dir, conv_id):
+    """根据对话 id 获取对话名称。"""
     data = _read_raw(work_dir)
     if data is None:
         return None
@@ -143,6 +157,7 @@ def get_name_by_id(work_dir, conv_id):
 
 
 def get_id_by_name(work_dir, name):
+    """根据对话名称获取对话 id。"""
     data = _read_raw(work_dir)
     if data is None:
         return None
@@ -154,6 +169,7 @@ def get_id_by_name(work_dir, name):
 
 
 def add_conversation(work_dir, name):
+    """新增对话，若同名对话已存在则切换到该对话，返回对话 id。"""
     data = _read_raw(work_dir) or {}
     data = _migrate_old_format(data)
     for c in data["conversations"]:
@@ -173,6 +189,7 @@ def add_conversation(work_dir, name):
 
 
 def set_current_by_id(work_dir, conv_id):
+    """将指定对话 id 设为当前对话。"""
     data = _read_raw(work_dir)
     if data is None:
         return
@@ -184,6 +201,7 @@ def set_current_by_id(work_dir, conv_id):
 
 
 def get_restricted_paths(work_dir):
+    """获取 .dpc 屏蔽规则列表。"""
     data = _read_raw(work_dir)
     if data is None:
         return [".dpc"]
@@ -192,6 +210,15 @@ def get_restricted_paths(work_dir):
 
 
 def is_path_allowed(work_dir, relative_path):
+    """判断相对路径是否被 .dpc 屏蔽规则允许访问。
+
+    Args:
+        work_dir: 工作目录
+        relative_path: 待校验的相对路径
+
+    Returns:
+        (allowed, msg)：是否允许访问及被拒原因
+    """
     import fnmatch
     restricted = get_restricted_paths(work_dir)
     normalized = relative_path.replace('\\', '/').lstrip('/')
@@ -231,6 +258,11 @@ def is_path_allowed_walkup(work_dir, absolute_path):
 
 
 def filter_allowed_paths(work_dir, paths):
+    """按 .dpc 屏蔽规则过滤路径列表。
+
+    Returns:
+        (allowed, blocked)：允许与被拒绝的路径列表
+    """
     allowed = []
     blocked = []
     for p in paths:
@@ -243,6 +275,7 @@ def filter_allowed_paths(work_dir, paths):
 
 
 def ensure_restriction(work_dir, restricted_patterns):
+    """确保指定屏蔽模式已加入 .dpc 限制规则。"""
     data = _read_raw(work_dir)
     if data is None:
         dpc_dir_id = str(uuid.uuid4())

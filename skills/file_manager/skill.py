@@ -183,7 +183,7 @@ def delete_file(context, file_path: str, confirmed: bool = False) -> Dict[str, A
         if result.get("success"):
             full_path = result.get("file_path", file_path)
             filename = Path(full_path).name
-            result["user_output"] = {"label": "File Change", "parts": [{"text": f"--{filename}"}, {"text": "Delet", "style": "red"}]}
+            result["user_output"] = {"label": "File Change", "parts": [{"text": f"--{filename}"}, {"text": "Deleted", "style": "red"}]}
         else:
             filename = _safe_filename(file_path)
             result["user_output"] = {"label": "File Change", "parts": [{"text": f"--{filename}"}, {"text": "Error", "style": "red"}]}

@@ -58,6 +58,15 @@ skill_info = {
 
 
 def random_int(min: int, max: int) -> Dict[str, Any]:
+    """生成指定范围内的随机整数。
+
+    Args:
+        min: 最小值
+        max: 最大值
+
+    Returns:
+        包含随机整数的结果字典
+    """
     value = random.randint(min, max)
     return {
         "success": True,
@@ -67,6 +76,15 @@ def random_int(min: int, max: int) -> Dict[str, Any]:
 
 
 def random_float(min: float, max: float) -> Dict[str, Any]:
+    """生成指定范围内的随机浮点数。
+
+    Args:
+        min: 最小值
+        max: 最大值
+
+    Returns:
+        包含随机浮点数的结果字典
+    """
     value = random.uniform(min, max)
     return {
         "success": True,
@@ -76,6 +94,14 @@ def random_float(min: float, max: float) -> Dict[str, Any]:
 
 
 def random_choice(choices: List[str]) -> Dict[str, Any]:
+    """从列表中随机选择一个元素。
+
+    Args:
+        choices: 选项列表
+
+    Returns:
+        包含随机选中元素的结果字典
+    """
     if not choices:
         return {
             "success": False,
@@ -101,6 +127,18 @@ def random_password(
     include_digits: bool = True,
     include_special: bool = True
 ) -> Dict[str, Any]:
+    """生成随机密码。
+
+    Args:
+        length: 密码长度，默认为 12
+        include_uppercase: 是否包含大写字母，默认为 True
+        include_lowercase: 是否包含小写字母，默认为 True
+        include_digits: 是否包含数字，默认为 True
+        include_special: 是否包含特殊字符，默认为 True
+
+    Returns:
+        包含随机密码的结果字典
+    """
     uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     lowercase = "abcdefghijklmnopqrstuvwxyz"
     digits = "0123456789"

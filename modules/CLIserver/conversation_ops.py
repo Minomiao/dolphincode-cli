@@ -15,12 +15,6 @@ log = get_logger("Dolphin.conversation_ops")
 _console = Console()
 
 
-def _chat_callback_proxy(event_type, data):
-    """延迟解析的回调代理，避免循环导入。"""
-    from .callback import chat_callback
-    return chat_callback(event_type, data)
-
-
 def open_work_directory(path=None, silent=False):
     """打开/切换工作目录。"""
     cmd = state.cmd
@@ -75,7 +69,6 @@ def open_work_directory(path=None, silent=False):
         sm = state.chat_instance.skill_mgr
         sm.reload_skills()
         sm.set_work_dir(path)
-        state.skill_mgr = sm
         if state.chat_instance.plugin_loader:
             state.chat_instance.plugin_loader.set_work_dir(path)
         state.chat_instance._update_tools()

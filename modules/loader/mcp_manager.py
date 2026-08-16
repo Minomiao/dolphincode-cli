@@ -1,9 +1,7 @@
 import asyncio
-import json
 import traceback
 from typing import Dict, List, Any, Optional
 from mcp.client.session import ClientSession
-from mcp.client.stdio import stdio_client
 from modules.logger import get_logger
 from modules.bootstrap import constants
 
@@ -15,40 +13,7 @@ class MCPManager:
         self.sessions: Dict[str, ClientSession] = {}
         self.tools: Dict[str, Dict[str, Any]] = {}
         log.debug("初始化 MCPManager")
-    
-    async def connect_server(self, name: str, command: List[str]) -> bool:
-        log.info(f"连接 MCP 服务器: {name}, 命令: {command}")
-        try:
-            server_params = {
-                "command": command[0],
-                "args": command[1:] if len(command) > 1 else []
-            }
-            
-            stdio_transport = await asyncio.wait_for(
-                stdio_client(server_params), timeout=constants.MCP_TIMEOUT)
-            stdio, write = stdio_transport
-            
-            session = ClientSession(stdio, write)
-            await asyncio.wait_for(session.initialize(), timeout=constants.MCP_TIMEOUT)
-            
-            self.sessions[name] = session
-            
-            tools_response = await asyncio.wait_for(
-                session.list_tools(), timeout=constants.MCP_TIMEOUT)
-            for tool in tools_response.tools:
-                self.tools[f"{name}.{tool.name}"] = {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "input_schema": tool.inputSchema,
-                    "server": name
-                }
-            
-            log.info(f"MCP 服务器 {name} 连接成功，加载 {len(tools_response.tools)} 个工具")
-            return True
-        except Exception as e:
-            log.error(f"连接 MCP 服务器 {name} 失败: {e}")
-            return False
-    
+
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         log.info(f"调用 MCP 工具: {tool_name}, 参数: {arguments}")
         if "." not in tool_name:
@@ -92,15 +57,6 @@ class MCPManager:
     
     def get_tool_names(self) -> List[str]:
         return list(self.tools.keys())
-    
-    async def close_all(self):
-        for name, session in self.sessions.items():
-            try:
-                await session.close()
-            except Exception as e:
-                log.warning(f"关闭 MCP session {name} 失败: {e}")
-        self.sessions.clear()
-        self.tools.clear()
 
 
 _mcp_manager = None

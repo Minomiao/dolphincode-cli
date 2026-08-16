@@ -15,6 +15,7 @@ ENV_FILE = None
 COMMANDS_FILE = None
 BACKUP_DIR = None
 MODELS_DIR = None
+CUSTOM_MODELS_FILE = None
 
 
 def _init_date_dpc():
@@ -32,7 +33,7 @@ def init(root_path: str):
     global PROJECT_ROOT, DATE_DIR, LOG_DIR
     global CONVERSATIONS_DIR, PROMPT_DIR
     global CONFIG_FILE, ENV_FILE, COMMANDS_FILE
-    global MODELS_DIR
+    global MODELS_DIR, CUSTOM_MODELS_FILE
 
     if PROJECT_ROOT is not None:
         return

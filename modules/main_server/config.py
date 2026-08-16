@@ -166,13 +166,6 @@ def get_custom_model(name):
     return None
 
 
-def _find_model(name):
-    """在内置和自定义模型中查找模型信息。"""
-    if name in MODEL_REGISTRY:
-        return MODEL_REGISTRY[name]
-    return get_custom_model(name)
-
-
 def get_available_models():
     """获取可用模型列表（内置 + 自定义），返回带有模型信息的列表"""
     models = []

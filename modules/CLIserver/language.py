@@ -117,7 +117,7 @@ def _render_text_menu(languages, index):
         ))
         _console.print()
         total = len(languages)
-        start, end = visible_range(index, total)
+        start, end = _visible_range(index, total)
         for i in range(start, end):
             lang = languages[i]
             marker = "▶" if i == index else " "

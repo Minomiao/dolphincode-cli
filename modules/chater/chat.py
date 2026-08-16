@@ -2,7 +2,6 @@ import json
 import os
 import asyncio
 import time
-import uuid
 
 from openai import OpenAI
 from modules.main_server import config
@@ -18,6 +17,11 @@ from modules.bootstrap import constants
 from modules.logger import get_logger, log_thinking
 
 log = get_logger("Dolphin.chat")
+
+# 工具迭代次数限制（上限/初始/扩展步长）
+MAX_HARD_LIMIT = constants.STREAM_MAX_HARD_LIMIT
+INITIAL_MAX = constants.STREAM_INITIAL_MAX
+EXTEND_BY = constants.STREAM_EXTEND_BY
 
 def format_tool_result(result_str):
     """格式化工具返回结果，使其更易读"""
@@ -122,9 +126,6 @@ class DolphinChat:
         
         self.backup_mgr = backup_manager.get_backup_manager()
         
-        # dialog_id = conv_id（在 set_save_target 时统一设置）
-        self.dialog_id = None
-
         self._update_tools()
         self._save_dir_id = None
         self._save_conv_id = None
@@ -315,12 +316,10 @@ class DolphinChat:
     def set_save_target(self, dir_id, conv_id):
         self._save_dir_id = dir_id
         self._save_conv_id = conv_id
-        # dialog_id = conv_id（统一标识）
-        self.dialog_id = conv_id
         # 同步设置备份管理器的会话上下文
         if self.backup_mgr:
             self.backup_mgr.set_session(dir_id, conv_id)
-        log.debug(f"设置保存目标: dir={dir_id}, conv={conv_id}, dialog_id={conv_id}")
+        log.debug(f"设置保存目标: dir={dir_id}, conv={conv_id}")
 
     def _update_tools(self):
         self.tools = []
@@ -858,10 +857,6 @@ class DolphinChat:
             self._clear_stream_buffer()
 
             await self._run_tool_calls(tool_calls)
-
-            MAX_HARD_LIMIT = 100
-            INITIAL_MAX = 30
-            EXTEND_BY = 20
 
             max_iterations = INITIAL_MAX
             iteration = 1

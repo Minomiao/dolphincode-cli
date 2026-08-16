@@ -97,26 +97,3 @@ def create_footer_panel(hint: str) -> Panel:
         Rich Panel 对象
     """
     return Panel(Text(hint, style="dim"), border_style="dim")
-
-
-def refresh_with_header(header_fn, message=None, show_history=True, history_fn=None):
-    """
-    便捷入口: 清屏后依次打印 头部、消息、对话历史。
-    与 refresh() 功能相同，只是参数顺序略作调整以突出 header。
-    """
-    return refresh(
-        header_fn=header_fn,
-        history_fn=history_fn,
-        message=message,
-        show_history=show_history,
-    )
-
-
-def reprint_history(history_fn, header_fn=None):
-    """
-    只重印头部和对话历史，不清屏（用于追加输出后补印）。
-    """
-    if header_fn:
-        header_fn()
-    if history_fn:
-        history_fn()

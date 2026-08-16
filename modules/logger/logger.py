@@ -4,9 +4,14 @@ from datetime import datetime
 from modules import bootstrap as app_paths
 
 
-def setup_logger(name="Dolphin", level=logging.DEBUG):
+def _ensure_log_dir() -> None:
+    """确保日志目录存在。"""
     if not os.path.exists(app_paths.LOG_DIR):
         os.makedirs(app_paths.LOG_DIR)
+
+
+def setup_logger(name="Dolphin", level=logging.DEBUG):
+    _ensure_log_dir()
 
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -37,8 +42,7 @@ def get_thinking_logger():
     """获取思考过程专用日志 Logger"""
     global _thinking_logger
     if _thinking_logger is None:
-        if not os.path.exists(app_paths.LOG_DIR):
-            os.makedirs(app_paths.LOG_DIR)
+        _ensure_log_dir()
 
         _thinking_logger = logging.getLogger("Dolphin.thinking")
         _thinking_logger.setLevel(logging.DEBUG)

@@ -35,10 +35,11 @@ skill_info = {
 
 
 def calculate(expression: str) -> Dict[str, Any]:
+    """计算数学表达式并返回结果。"""
     if not HAS_SYMPY:
         return {
             "success": False,
-            "error": "sympy is not installed, please run pip install sympy",
+            "error": "sympify 未安装，请运行 pip install sympy",
             "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
 
@@ -60,18 +61,19 @@ def calculate(expression: str) -> Dict[str, Any]:
     except SympifyError:
         return {
             "success": False,
-            "error": f"Unable to parse expression: {expression}",
+            "error": f"无法解析表达式: {expression}",
             "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
     except Exception as e:
         return {
             "success": False,
-            "error": f"Calculation failed: {str(e)}",
+            "error": f"计算失败: {str(e)}",
             "user_output": {"label": "Calculator", "parts": [{"text": expression}, {"text": "Error", "style": "red"}]}
         }
 
 
 def get_current_time() -> Dict[str, Any]:
+    """获取当前时间字符串。"""
     time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return {
         "success": True,

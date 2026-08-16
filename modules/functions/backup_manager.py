@@ -11,12 +11,6 @@ from modules import bootstrap as app_paths
 
 log = get_logger("Dolphin.backup_manager")
 
-from rich.console import Console, Group
-from rich.table import Table
-from rich.text import Text
-
-console = Console()
-
 # ===== 会话文件夹内备份 =====
 CONVERSATIONS_DIR = app_paths.CONVERSATIONS_DIR
 
@@ -402,40 +396,6 @@ def revert_all_changes(dir_id: str, conv_id: str) -> Dict[str, Any]:
         "message": f"已撤销 {reverted_count} 个更改"
     }
 
-def show_pending_changes(dir_id: str, conv_id: str):
-    """显示待确认的更改，返回 rich Table"""
-    pending = get_pending_changes_list(dir_id, conv_id)
-    if not pending:
-        return None
-
-    table = Table(show_header=True, header_style="bold cyan", border_style="dim", padding=(0, 1))
-    table.add_column("#", style="dim", width=4)
-    table.add_column("操作", width=8)
-    table.add_column("文件")
-
-    action_style_map = {
-        "create": "green",
-        "delete": "red",
-        "modify": "yellow",
-    }
-    action_label_map = {
-        "create": "创建",
-        "delete": "删除",
-        "modify": "修改",
-    }
-
-    for i, change in enumerate(pending, 1):
-        action = change["action"]
-        label = action_label_map.get(action, action)
-        style = action_style_map.get(action, "white")
-        table.add_row(
-            str(i),
-            Text(label, style=style),
-            change["file_path"],
-        )
-
-    return table
-
 # 单例模式
 _backup_manager = None
 
@@ -499,12 +459,6 @@ class BackupManager:
         if not self._check_session():
             return {"success": False, "message": "会话上下文未设置"}
         return revert_all_changes(self._dir_id, self._conv_id)
-
-    def show_pending_changes(self):
-        """显示待确认的更改"""
-        if not self._check_session():
-            return None
-        return show_pending_changes(self._dir_id, self._conv_id)
 
 
 def get_backup_manager() -> BackupManager:

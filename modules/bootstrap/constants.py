@@ -25,6 +25,8 @@ MAX_OUTPUT_LENGTH = 50000
 MAX_OUTPUT_LINES = 500
 DEFAULT_TIMEOUT = 30
 DEFAULT_WAIT_TIME = 10
+# 后台进程最长存活时间（秒），超时自动清理防止泄漏
+MAX_BACKGROUND_LIFETIME = 600  # 10分钟
 
 # ===== PowerShell 缓存管理 =====
 # 缓存有效期（秒）：命令完成后保留多久供 AI 轮询
@@ -98,8 +100,6 @@ DANGEROUS_PATTERNS = [
     r'[\'"](?:i|in|inv|invo|invok|invoke)[\'"]\s*\+\s*[\'"]',
     r'\[[\s]*char[\s]*\][\s]*\d',
     r'invoke[\s]*-[\s]*expression',
-    r'\bset-itemproperty\b.*(?:registry|hklm|hkcu|hkcr|hkey)',
-    r'\bnew-itemproperty\b.*(?:registry|hklm|hkcu|hkcr|hkey)',
     r'\bscriptblock\s*::\s*create',
     r'\.\s*\(?\s*set-itemproperty',
     r'\.\s*\(?\s*invoke-expression',
@@ -109,6 +109,11 @@ DANGEROUS_PATTERNS = [
 WARN_THRESHOLD = 0.70   # 70%: 提醒用户
 HIGH_THRESHOLD = 0.85   # 85%: 建议清理
 CRITICAL_THRESHOLD = 0.95  # 95%: 强烈建议清理
+
+# ===== 工具迭代限制 =====
+STREAM_MAX_HARD_LIMIT = 100
+STREAM_INITIAL_MAX = 30
+STREAM_EXTEND_BY = 20
 
 # ===== DPC 对话控制文件 =====
 DPC_FILENAME = ".dpc"

@@ -244,31 +244,3 @@ def get_command_description(cmd_key):
     if cmd_key in cmd_list:
         return cmd_list[cmd_key].get("description", "")
     return ""
-
-
-def _fuzzy_match_keyword(user_input):
-    prefix = _get_prefix()
-    if not user_input.startswith(prefix):
-        return None
-    keyword = user_input[len(prefix):]
-
-    defaults = _get_default_commands()
-    candidates = []
-
-    for cmd_key, info in defaults["commands"].items():
-        cmd_keyword = info["input"]
-        match_count = 0
-        for a, b in zip(keyword, cmd_keyword):
-            if a == b:
-                match_count += 1
-            else:
-                break
-
-        if match_count > 0:
-            candidates.append((match_count, cmd_keyword, cmd_key))
-
-    if not candidates:
-        return None
-
-    candidates.sort(key=lambda x: (-x[0], x[1]))
-    return prefix + candidates[0][1]

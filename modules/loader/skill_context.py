@@ -2,7 +2,7 @@
 Skill 执行上下文。
 由 SkillManager 在调用 skill 函数时创建并注入，替代 skill 自行 import 内部模块。
 """
-import os
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Callable
 
@@ -162,28 +162,24 @@ def create_default_context(work_directory: str) -> SkillContext:
         from modules.main_server.middleware import request_manager as rm_mod
         request_manager = rm_mod.get_request_manager()
     except Exception as e:
-        import logging
         logging.getLogger("Dolphin.skill_context").warning(f"加载 request_manager 失败: {e}")
 
     try:
         from modules.functions import backup_manager as bm_mod
-        backup_mgr = bm_mod
+        backup_mgr = bm_mod.get_backup_manager()
     except Exception as e:
-        import logging
         logging.getLogger("Dolphin.skill_context").warning(f"加载 backup_manager 失败: {e}")
 
     try:
         from modules.functions import powershell_manager as ps_mod
         ps_mgr = ps_mod
     except Exception as e:
-        import logging
         logging.getLogger("Dolphin.skill_context").warning(f"加载 powershell_manager 失败: {e}")
 
     try:
         from modules.logger import get_logger
         logger = get_logger("Dolphin.skill_context")
     except Exception as e:
-        import logging
         logging.getLogger("Dolphin.skill_context").warning(f"加载 logger 失败: {e}")
 
     def _check_path(file_path: str) -> Dict[str, Any]:

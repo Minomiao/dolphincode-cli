@@ -27,8 +27,6 @@ class ContextManager:
     def __init__(self, get_system_prompt, get_context_prompt=None):
         self._get_system_prompt = get_system_prompt
         self._get_context_prompt = get_context_prompt
-        # API 返回的精确 token 用量缓存
-        self._api_usage = None
         self._cumulative_prompt_tokens = 0
         self._cumulative_completion_tokens = 0
         # 上一轮的 prompt_tokens（用于计算本轮增量）
@@ -36,8 +34,6 @@ class ContextManager:
         # DeepSeek 硬盘缓存命中统计
         self._cache_hit_tokens = 0
         self._cache_miss_tokens = 0
-        self._total_cache_hit_tokens = 0
-        self._total_cache_miss_tokens = 0
         self._turn_count = 0
 
     def prepare_messages(self, messages: list) -> list:
@@ -160,7 +156,6 @@ class ContextManager:
         if usage is None:
             return
 
-        self._api_usage = usage
         self._turn_count += 1
 
         # 更新累计值：prompt_tokens 代表当前完整上下文，completion_tokens 是本轮输出
@@ -177,10 +172,8 @@ class ContextManager:
         miss = getattr(usage, 'prompt_cache_miss_tokens', None)
         if hit is not None:
             self._cache_hit_tokens = hit
-            self._total_cache_hit_tokens += hit
         if miss is not None:
             self._cache_miss_tokens = miss
-            self._total_cache_miss_tokens += miss
 
         log.debug(
             f"Token 用量已更新: prompt={self._cumulative_prompt_tokens}, "
@@ -190,14 +183,11 @@ class ContextManager:
 
     def reset_usage(self) -> None:
         """重置 token 用量统计（在清空历史时调用）。"""
-        self._api_usage = None
         self._cumulative_prompt_tokens = 0
         self._cumulative_completion_tokens = 0
         self._previous_prompt_tokens = 0
         self._cache_hit_tokens = 0
         self._cache_miss_tokens = 0
-        self._total_cache_hit_tokens = 0
-        self._total_cache_miss_tokens = 0
         self._turn_count = 0
 
     def _estimate_tokens(self, messages: list) -> int:
@@ -224,9 +214,3 @@ class ContextManager:
                 if isinstance(rc, str):
                     total += max(1, len(rc) // 3)
         return total
-
-    # ---------- 预留扩展方法 ----------
-
-    def _compress(self, messages: list) -> list:
-        """上下文压缩 (待实现)。"""
-        return messages

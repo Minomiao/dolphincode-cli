@@ -134,7 +134,6 @@ def chat_callback(event_type, data):
         if state.show_thinking:
             print(f"{Fore.LIGHTBLACK_EX}╰─ {i18n.t('chat.thinking_header')}{Style.RESET_ALL}\n{Fore.LIGHTBLACK_EX}{data['content']}{Style.RESET_ALL}")
             ui._indented_after_thinking = False
-            ui._fold_corner_used = False
     elif event_type == 'tool_start':
         clear_tool_pending()
         ui._tool_pending = True
@@ -142,7 +141,6 @@ def chat_callback(event_type, data):
         log.info(f"工具开始执行: {data.get('name', 'unknown')}")
     elif event_type == 'thinking_start':
         ui._indented_after_thinking = False
-        ui._fold_corner_used = False
         if ui.turn_first_output:
             ui.turn_first_output = False
         if state.show_thinking:
@@ -163,7 +161,6 @@ def chat_callback(event_type, data):
             log.info(f"思考完成, 耗时={elapsed}s")
             print(f"\r\033[K{Fore.LIGHTBLACK_EX}╰─ {i18n.t('chat.thinking_done', elapsed=elapsed)}{Style.RESET_ALL}")
         ui._indented_after_thinking = not state.show_thinking
-        ui._fold_corner_used = not state.show_thinking
     elif event_type == 'response_chunk':
         if ui.turn_first_output:
             ui.turn_first_output = False
@@ -187,7 +184,6 @@ def chat_callback(event_type, data):
         ui.at_line_start = content.endswith('\n')
     elif event_type == 'response_end':
         ui._indented_after_thinking = False
-        ui._fold_corner_used = False
     elif event_type == 'tool_calls':
         clear_tool_pending()
         sys.stdout.write("\n")

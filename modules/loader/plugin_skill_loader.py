@@ -168,7 +168,7 @@ class PluginSkillLoader(BaseSkillLoader):
             possible_skill = "_".join(parts[:i])
             # 检查是否有 "plugin-" 前缀
             if possible_skill.startswith("plugin-"):
-                possible_skill = possible_skill[8:]
+                possible_skill = possible_skill[7:]
             if possible_skill in self.skills:
                 func_name = "_".join(parts[i:])
                 return possible_skill, func_name
@@ -193,7 +193,7 @@ class PluginSkillLoader(BaseSkillLoader):
 
         # 移除 "plugin-" 前缀
         if skill_name.startswith("plugin-"):
-            original_skill_name = skill_name[8:]
+            original_skill_name = skill_name[7:]
         else:
             original_skill_name = skill_name
 

@@ -17,7 +17,6 @@ class UIState:
         self._spinner_task = None
         self._pending_context_usage = None  # 暂存的 token 用量，在回显中显示
         self._indented_after_thinking = False  # 思考结束后进入缩进模式
-        self._fold_corner_used = False  # 当前缩进轮次是否已输出折角符号
         self.at_line_start = True  # 流式输出后光标是否位于行首（用于后续换行）
 
 
@@ -31,7 +30,6 @@ class AppState:
     def __init__(self):
         self.current_config = None
         self.chat_instance = None
-        self.skill_mgr = None
         self.current_conversation = None
         self.current_dir_id = None
         self.current_conv_id = None
