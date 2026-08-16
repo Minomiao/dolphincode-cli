@@ -72,7 +72,7 @@ main_gui.py
 modules/main_server/app_engine.py
 
 # Tests
-tests/
+# tests/ 已纳入版本控制，不再忽略
 
 #embedding
 models/bge-small-zh-v1.5/
