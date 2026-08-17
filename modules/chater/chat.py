@@ -345,7 +345,7 @@ class DolphinChat:
     def get_system_prompt(self) -> str:
         """获取静态系统提示词（仅行为规则，用于 prompt caching）"""
         prompt_request = self.request_manager.create_prompt_request("system")
-        result = self.request_manager.handle_request(prompt_request, None)
+        result = self.request_manager.handle_request(prompt_request)
 
         if result.get("success"):
             return result.get("prompt", "")
@@ -361,7 +361,7 @@ class DolphinChat:
             directory_structure=self.get_directory_structure(),
             effort_level=self.effort_level
         )
-        result = self.request_manager.handle_request(prompt_request, None)
+        result = self.request_manager.handle_request(prompt_request)
 
         if result.get("success"):
             return result.get("prompt", "")
@@ -425,7 +425,7 @@ class DolphinChat:
             if self.request_manager and isinstance(result, dict):
                 if self.request_manager.is_request(result):
                     log.debug(f"检测到申请: {result.get('type', 'unknown')}")
-                    self.request_manager.handle_request(result, self.callback)
+                    self.request_manager.handle_request(result)
 
             # 从工具返回结果中直接提取 user_output（显式传递，不再依赖 request_manager 隐式状态）
             if isinstance(result, dict) and result.get("user_output"):

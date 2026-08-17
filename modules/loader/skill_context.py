@@ -122,7 +122,7 @@ class SkillContext:
             return {"error": "request_manager 不可用"}
         kwargs.setdefault("work_directory", self._work_directory)
         req = self._request_manager.create_file_operation_request(operation, **kwargs)
-        return self._request_manager.handle_request(req, None)
+        return self._request_manager.handle_request(req)
 
     # ===== 备份管理 =====
     @property

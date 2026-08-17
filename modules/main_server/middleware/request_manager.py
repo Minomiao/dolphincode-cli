@@ -1,8 +1,14 @@
 import asyncio
-from typing import Dict, Any, List, Optional, Awaitable, Callable
+import concurrent.futures
+from typing import Dict, Any, List, Optional, Awaitable
 from modules.logger import get_logger
 
 log = get_logger("Dolphin.request_manager")
+
+
+# 共享线程池：在运行中的事件循环内以独立线程执行协程。
+# 复用单一执行器可保证超时后悬挂线程最多 1 个，不会随调用次数累积。
+_sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 
 def _run_async(coro: Awaitable, timeout: float = 120.0) -> Any:
@@ -23,18 +29,12 @@ def _run_async(coro: Awaitable, timeout: float = 120.0) -> Any:
         # 已有运行中的事件循环，避免 asyncio.run() 的 "cannot run in running loop" 错误
         if loop.is_running():
             # 创建 Task 并等待完成（适用于嵌套在已有 async 上下文中的同步调用）
-            import concurrent.futures
-            pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            future = _sync_executor.submit(asyncio.run, coro)
             try:
-                future = pool.submit(asyncio.run, coro)
                 return future.result(timeout=timeout)
             except concurrent.futures.TimeoutError:
                 log.error(f"协程执行超过 {timeout}s 超时")
                 raise TimeoutError(f"协程执行超时 ({timeout}s)")
-            finally:
-                # 不等待线程完成：超时后仍被 with 块 join 会卡住主流程，
-                # 线程会独立跑完 asyncio.run 后自行结束
-                pool.shutdown(wait=False)
         return loop.run_until_complete(coro)
 
 class RequestType:
@@ -210,7 +210,7 @@ class RequestManager:
         
         return False
     
-    def handle_request(self, request: Dict[str, Any], callback: Callable[..., Any]) -> Any:
+    def handle_request(self, request: Dict[str, Any]) -> Any:
         """处理申请"""
         if not self.is_request(request):
             return request
@@ -321,8 +321,8 @@ class RequestManager:
             
             if operation_type == 'get':
                 logger_name = request.get('name', 'Dolphin')
-                logger_instance = _get_logger(logger_name)
-                result = {"success": True, "logger": logger_instance}
+                # 只返回名称，避免 Logger 对象进入结果（不可 JSON 序列化）
+                result = {"success": True, "name": logger_name}
             elif operation_type == 'log':
                 level = request.get('level', 'info')
                 message = request.get('message', '')
