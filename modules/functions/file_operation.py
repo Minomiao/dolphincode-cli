@@ -24,7 +24,13 @@ def _check_dpc_restriction(absolute_path: str) -> Tuple[bool, Optional[str]]:
             if not allowed:
                 return False, msg
         parent = os.path.dirname(current)
-        if parent == current or os.path.commonpath([parent, project_root]) != project_root:
+        if parent == current:
+            break
+        # 跨盘符时父目录必然不在项目内，直接终止上溯
+        try:
+            if os.path.commonpath([parent, project_root]) != project_root:
+                break
+        except ValueError:
             break
         current = parent
     return True, None
@@ -192,9 +198,15 @@ class FileOperation:
             # 获取参数
             file_path = request_data.get('file_path')
             encoding = request_data.get('encoding', 'utf-8')
-            offset = request_data.get('offset', 0)
+            try:
+                offset = int(request_data.get('offset', 0))
+                limit = int(request_data.get('limit', MAX_LINE_COUNT))
+            except (TypeError, ValueError):
+                return {"error": "offset/limit 必须为整数"}
+            if offset < 0 or limit < 0:
+                return {"error": "offset/limit 不能为负数"}
             # limit 采用 100 行冗余设计：对外声明 1000 行，实际默认 1100 行
-            limit = request_data.get('limit', MAX_LINE_COUNT)
+            limit = min(limit, MAX_LINE_COUNT)
             work_directory = request_data.get('work_directory')
             
             if not file_path:
@@ -406,6 +418,13 @@ class FileOperation:
             # 构建新内容（只替换第一次出现）
             new_content = original_content[:index] + new_str + original_content[index + len(old_str):]
             
+            # 验证新内容大小（对齐 create_file 的 MAX_FILE_SIZE 校验）
+            new_content_size = len(new_content.encode(encoding))
+            if new_content_size > MAX_FILE_SIZE:
+                return {
+                    "error": f"修改后文件内容过大: {new_content_size} 字节，最大允许: {MAX_FILE_SIZE} 字节"
+                }
+            
             # 计算行数变化
             old_line_count = old_str.count('\n')
             new_line_count = new_str.count('\n')
@@ -436,9 +455,6 @@ class FileOperation:
                     pending_count = backup_mgr.get_pending_changes_count()
             except Exception as e:
                 log.warning(f"记录变更失败: {e}")
-            
-            new_content_size = len(new_content.encode(encoding))
-            
             elapsed = time.perf_counter() - start
             log.info(f"修改文件完成: {file_path}, 耗时={elapsed:.3f}s, 新大小={new_content_size}字节")
             return {
