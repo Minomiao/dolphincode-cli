@@ -212,7 +212,7 @@ def check_model_deprecation(model_name):
 def _get_default_config():
     return {
         "base_url": os.getenv("QUICKAI_BASE_URL", "https://api.deepseek.com"),
-        "model": "deepseek-v4-flash",
+        "model": constants.DEFAULT_MODEL,
         "language": "zh-CN",
         "command_prefix": "/",
         "max_tokens": 18000,
@@ -263,8 +263,8 @@ def save_config(config):
         if not env_path.exists():
             env_path.parent.mkdir(parents=True, exist_ok=True)
             env_path.touch()
-        if api_key:
-            set_key(app_paths.ENV_FILE, "QUICKAI_API_KEY", api_key)
+        # api_key 清空时也写入覆盖，避免 .env 残留旧值
+        set_key(app_paths.ENV_FILE, "QUICKAI_API_KEY", api_key)
         if work_dir:
             set_key(app_paths.ENV_FILE, "QUICKAI_WORK_DIRECTORY", work_dir)
         load_dotenv(app_paths.ENV_FILE, override=True)

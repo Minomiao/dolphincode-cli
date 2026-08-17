@@ -4,6 +4,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from modules.logger import get_logger
+from modules.bootstrap import constants
 from . import i18n
 from .state import state
 from .screen_refresh import create_header_panel, create_footer_panel
@@ -148,7 +149,7 @@ def model_settings():
     def _render():
         from .key_nav import navigate
 
-        current_model = state.current_config.get('model', 'deepseek-v4-flash')
+        current_model = state.current_config.get('model', constants.DEFAULT_MODEL)
         available_models = get_available_models()
 
         def _label(model_info, i):
@@ -271,7 +272,7 @@ def _delete_custom_model_flow(model_info):
 
     # 如果当前正在使用该模型，切回默认模型
     if state.current_config.get('model') == name:
-        state.current_config['model'] = 'deepseek-v4-flash'
+        state.current_config['model'] = constants.DEFAULT_MODEL
 
     success, error = remove_custom_model(name)
     if success:

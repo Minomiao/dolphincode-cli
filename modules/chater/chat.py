@@ -96,7 +96,7 @@ def _parse_display_name(tool_name: str, skill_mgr=None, plugin_loader=None) -> s
 
 
 class DolphinChat:
-    def __init__(self, model="deepseek-v4-flash", temperature=0.7, max_tokens=None, enable_tools=True, callback=None):
+    def __init__(self, model=constants.DEFAULT_MODEL, temperature=0.7, max_tokens=None, enable_tools=True, callback=None):
         self.model = model
         self.temperature = temperature
         

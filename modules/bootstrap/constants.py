@@ -3,6 +3,9 @@
 所有模块级固定变量集中在此管理，各模块通过 from modules.bootstrap import constants 导入。
 """
 
+# ===== 默认模型 =====
+DEFAULT_MODEL = "deepseek-v4-flash"
+
 # ===== 文件操作限制 =====
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 # MAX_LINE_COUNT 采用 100 行冗余设计：对外声明 1000 行，实际限制 1100 行

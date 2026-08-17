@@ -230,7 +230,8 @@ def git_diff(context, path: str = None) -> Dict[str, Any]:
     """查看未暂存的更改差异。"""
     args = ["diff"]
     if path and path.strip():
-        args.append(path.strip())
+        # -- 分隔符防止路径以 - 开头被当作 git 选项
+        args += ["--", path.strip()]
     result = _run_git(context, args)
     if result.get("success"):
         diff_text = result.get("stdout") or "<无未暂存的更改>"
@@ -261,7 +262,8 @@ def git_add(context, paths: str) -> Dict[str, Any]:
             "user_output": {"label": OUTPUT_LABEL, "parts": [{"text": "add"}, {"text": "Error", "style": "red"}]},
         }
 
-    result = _run_git(context, ["add", *allowed])
+    # -- 分隔符防止路径以 - 开头被当作 git 选项
+    result = _run_git(context, ["add", "--", *allowed])
     if result.get("success"):
         message = f"已暂存 {len(allowed)} 个路径"
         if blocked:

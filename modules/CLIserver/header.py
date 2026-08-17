@@ -16,7 +16,7 @@ def print_header():
     cmd = state.cmd
     config = state.config
     deprecation_warning = config.check_model_deprecation(
-        state.current_config.get('model', 'deepseek-v4-flash'))
+        state.current_config.get('model', constants.DEFAULT_MODEL))
     work_dir = state.current_config.get('work_directory', 'workplace')
 
     dolphin = Text(_DOLPHIN_ART, style="bright_blue")

@@ -103,7 +103,7 @@ def _startup():
     time.sleep(0.1)
 
     deprecation_warning = state.config.check_model_deprecation(
-        state.current_config.get('model', 'deepseek-v4-flash'))
+        state.current_config.get('model', constants.DEFAULT_MODEL))
     if deprecation_warning:
         log.warning(deprecation_warning)
 
@@ -127,7 +127,7 @@ def _startup():
     time.sleep(0.1)
 
     state.chat_instance = state.chat.DolphinChat(
-        model=state.current_config.get('model', 'deepseek-v4-flash'),
+        model=state.current_config.get('model', constants.DEFAULT_MODEL),
         max_tokens=state.current_config.get('max_tokens', 18000),
         callback=chat_callback
     )

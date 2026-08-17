@@ -73,7 +73,7 @@ def backup_file(
                 "backup_files": []
             }
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
         backup_filename = f"{timestamp}.bak"
 
         # 创建备份文件夹：backups/{file_id}/（统一管理，不按 dialog_id 分层）

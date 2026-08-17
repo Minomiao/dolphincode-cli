@@ -137,7 +137,7 @@ async def chat_ai(
 
     saved_work_dir = request_manager.get_ai_work_directory()
     chat = DolphinChat(
-        model=config.load_config().get('model', 'deepseek-v4-flash'),
+        model=config.load_config().get('model', constants.DEFAULT_MODEL),
         temperature=temperature,
         max_tokens=max_tokens,
         enable_tools=enable_tools,
