@@ -51,6 +51,13 @@ class TestConstants(unittest.TestCase):
         self.assertIsInstance(constants.WARN_THRESHOLD, float)
         self.assertIsInstance(constants.STREAM_MAX_HARD_LIMIT, int)
 
+    def test_default_model(self):
+        # 默认模型常量为非空字符串，且存在于模型注册表
+        self.assertTrue(hasattr(constants, "DEFAULT_MODEL"))
+        self.assertIsInstance(constants.DEFAULT_MODEL, str)
+        self.assertGreater(len(constants.DEFAULT_MODEL), 0)
+        self.assertIn(constants.DEFAULT_MODEL, constants.MODEL_REGISTRY)
+
 
 if __name__ == "__main__":
     unittest.main()
