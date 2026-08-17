@@ -361,6 +361,21 @@ async def _auto_kill_background(command_id: str, delay: int = MAX_BACKGROUND_LIF
         log.error(f"后台进程自动清理失败: command_id={command_id}, {e}")
 
 
+def _format_result_output(stdout: str, stderr: str, exit_code: Optional[int]) -> str:
+    """格式化命令执行结果：非零退出码或 stdout 为空时附带 stderr。
+
+    脚本错误通常写入 stderr，若结果仅含 stdout，AI 无法看到失败原因。
+    stderr 非空时以 [stderr] 区块附加在输出末尾。
+    """
+    if exit_code == 0 and stdout.strip():
+        return stdout
+    stderr = stderr.strip()
+    if not stderr:
+        return stdout
+    separator = "" if stdout.endswith("\n") else "\n"
+    return f"{stdout}{separator}[stderr]\n{stderr}"
+
+
 async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time: int = DEFAULT_WAIT_TIME) -> Dict[str, Any]:
     global _process_counter
     _process_counter += 1
@@ -404,15 +419,19 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
             await _wait_for_task_with_timeout(stderr_task, "stderr", command_id)
 
             stdout = ''.join(stdout_buffer)
+            stderr = ''.join(stderr_buffer)
             if len(stdout) > MAX_OUTPUT_LENGTH:
                 stdout = stdout[:MAX_OUTPUT_LENGTH] + f"\n... (输出已截断)"
+            if len(stderr) > MAX_OUTPUT_LENGTH:
+                stderr = stderr[:MAX_OUTPUT_LENGTH] + f"\n... (stderr 已截断)"
+            merged_output = _format_result_output(stdout, stderr, process.returncode)
 
             _close_transports(proc_info)
             # 使用新的缓存管理器（带 TTL）
             _cache_manager.add(command_id, {
                 "status": "done",
                 "exit_code": process.returncode,
-                "output": stdout
+                "output": merged_output
             })
             _running_processes.pop(command_id, None)
 
@@ -422,7 +441,7 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
             return {
                 "success": True,
                 "return_code": process.returncode,
-                "output": stdout,
+                "output": merged_output,
                 "completed": True,
                 "command_id": command_id,
                 "message": f"脚本执行完成，返回码: {process.returncode}"
@@ -431,6 +450,8 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
         except asyncio.TimeoutError:
             await asyncio.sleep(0.1)
             stdout = ''.join(stdout_buffer)
+            stderr = ''.join(stderr_buffer)
+            merged_output = _format_result_output(stdout, stderr, None)
 
             # 注册后台超时自动清理：后台存活不超过 timeout（至少 wait_time），防止进程永久泄漏
             task = asyncio.create_task(_auto_kill_background(command_id, delay=max(timeout, wait_time)))
@@ -443,7 +464,7 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
 
             return {
                 "success": True,
-                "output": stdout if stdout else "(命令正在运行中...)",
+                "output": merged_output if merged_output else "(命令正在运行中...)",
                 "completed": False,
                 "command_id": command_id,
                 "wait_time": wait_time,
@@ -489,44 +510,48 @@ async def check_script(command_id: str, wait_time: int = DEFAULT_WAIT_TIME) -> D
         await _wait_for_task_with_timeout(proc_info['stderr_task'], "stderr", command_id)
 
         stdout = ''.join(proc_info['stdout_buffer'])
+        stderr = ''.join(proc_info['stderr_buffer'])
         return_code = process.returncode
+        merged_output = _format_result_output(stdout, stderr, return_code)
+
+        lines = merged_output.split('\n')
+        if len(lines) > MAX_OUTPUT_LINES:
+            merged_output = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
 
         _close_transports(proc_info)
         # 使用新的缓存管理器
         _cache_manager.add(command_id, {
             "status": "done",
             "exit_code": return_code,
-            "output": stdout
+            "output": merged_output
         })
         _running_processes.pop(command_id, None)
 
         elapsed = time.time() - check_start
         log.info(f"命令完成: command_id={command_id}, returncode={return_code}, 耗时={elapsed:.3f}s")
 
-        lines = stdout.split('\n')
-        if len(lines) > MAX_OUTPUT_LINES:
-            stdout = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
-
         return {
             "status": "done",
             "exit_code": return_code,
-            "output": stdout
+            "output": merged_output
         }
 
     except asyncio.TimeoutError:
         await asyncio.sleep(0.1)
         stdout = ''.join(proc_info['stdout_buffer'])
+        stderr = ''.join(proc_info['stderr_buffer'])
+        merged_output = _format_result_output(stdout, stderr, None)
 
-        lines = stdout.split('\n')
+        lines = merged_output.split('\n')
         if len(lines) > MAX_OUTPUT_LINES:
-            stdout = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
+            merged_output = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
 
         elapsed = time.time() - check_start
         log.info(f"命令仍在运行: command_id={command_id}, 已耗时={elapsed:.3f}s")
 
         return {
             "status": "running",
-            "output": stdout if stdout else "(命令正在运行中...)"
+            "output": merged_output if merged_output else "(命令正在运行中...)"
         }
 
 
@@ -555,17 +580,19 @@ def kill_command(command_id: str) -> Dict[str, Any]:
         log.error(f"终止进程失败: command_id={command_id}, error={str(e)}")
 
     stdout = ''.join(proc_info['stdout_buffer'])
+    stderr = ''.join(proc_info['stderr_buffer'])
     exit_code = process.returncode
+    merged_output = _format_result_output(stdout, stderr, exit_code)
 
-    lines = stdout.split('\n')
+    lines = merged_output.split('\n')
     if len(lines) > MAX_OUTPUT_LINES:
-        stdout = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
+        merged_output = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
 
     # 使用新的缓存管理器
     _cache_manager.add(command_id, {
         "status": "done",
         "exit_code": exit_code,
-        "output": stdout if stdout else "(命令已被强制终止)"
+        "output": merged_output if merged_output else "(命令已被强制终止)"
     })
     _running_processes.pop(command_id, None)
 
@@ -574,7 +601,7 @@ def kill_command(command_id: str) -> Dict[str, Any]:
     return {
         "status": "done",
         "exit_code": exit_code,
-        "output": stdout if stdout else "(命令已被强制终止)"
+        "output": merged_output if merged_output else "(命令已被强制终止)"
     }
 
 
