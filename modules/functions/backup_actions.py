@@ -127,9 +127,11 @@ def record_change(
 
     if file_id:
         file_info = registry["backups"][file_id]
-        # 检查当前对话是否有未确认的备份
+        # 检查当前对话是否有未确认的备份。
+        # 从末尾向前找：每次操作先 backup_file 追加记录、再 record_change，
+        # 因此"最后一条未确认"即本次操作对应的记录，避免更新到更早的遗留记录。
         unconfirmed = None
-        for backup in file_info.get("backup_files", []):
+        for backup in reversed(file_info.get("backup_files", [])):
             if backup.get("dialog_id") == dialog_id and not backup.get("confirmed", False):
                 unconfirmed = backup
                 break
