@@ -62,6 +62,12 @@ class FakeConfigModule:
             return True, ""
         return self.remove_results.pop(0)
 
+    def resolve_model_credentials(self, name):
+        """按模型名返回凭据：自定义模型用自身声明，内置模型用默认地址。"""
+        if name == "my-model":
+            return {"base_url": "https://example.com/v1", "api_key": "sk-x"}
+        return {"base_url": "https://api.deepseek.com", "api_key": "sk-default"}
+
 
 class FakeCmdModule:
     """替代命令模块的假模块。"""
@@ -117,7 +123,7 @@ class TestSetMaxTokens(unittest.TestCase):
         self.assertEqual(self.ctx.config_module.saved, [])
 
     def test_above_maximum_rejected(self):
-        result = config_service.set_max_tokens(self.ctx, 200001)
+        result = config_service.set_max_tokens(self.ctx, config_service.MAX_MAX_TOKENS + 1)
         self.assertFalse(result["success"])
         self.assertEqual(result["error"], "max")
         self.assertEqual(self.ctx.config_module.saved, [])
@@ -203,9 +209,9 @@ class TestModelSwitch(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["value"], "other-model")
         self.assertEqual(self.ctx.current_config["model"], "other-model")
-        # 内置模型不覆盖 base_url / api_key
-        self.assertNotIn("base_url", self.ctx.current_config)
-        self.assertNotIn("api_key", self.ctx.current_config)
+        # 内置模型解析到默认服务地址与 .env 密钥，不再沿用自定义模型凭据
+        self.assertEqual(self.ctx.current_config["base_url"], "https://api.deepseek.com")
+        self.assertEqual(self.ctx.current_config["api_key"], "sk-default")
         self.assertTrue(result["rebuilt"])
         # 切换后实例被重建
         self.assertEqual(len(self.ctx.chat_module.instances), 2)

@@ -52,11 +52,19 @@ class TestConstants(unittest.TestCase):
         self.assertIsInstance(constants.STREAM_MAX_HARD_LIMIT, int)
 
     def test_default_model(self):
-        # 默认模型常量为非空字符串，且存在于模型注册表
+        # 默认模型常量为非空字符串，且存在于内置模型种子中
         self.assertTrue(hasattr(constants, "DEFAULT_MODEL"))
         self.assertIsInstance(constants.DEFAULT_MODEL, str)
         self.assertGreater(len(constants.DEFAULT_MODEL), 0)
-        self.assertIn(constants.DEFAULT_MODEL, constants.MODEL_REGISTRY)
+        seed_names = [m["name"] for m in constants.DEFAULT_MODELS]
+        self.assertIn(constants.DEFAULT_MODEL, seed_names)
+
+    def test_default_models_seed_shape(self):
+        # 种子条目需自带 base_url 与内置标记，供首次写入 models.json
+        for seed in constants.DEFAULT_MODELS:
+            self.assertIn("base_url", seed)
+            self.assertTrue(seed.get("builtin"))
+            self.assertGreater(seed.get("context_window", 0), 0)
 
 
 if __name__ == "__main__":

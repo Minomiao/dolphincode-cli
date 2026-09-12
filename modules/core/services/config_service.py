@@ -15,9 +15,9 @@ from . import chat_service
 
 log = get_logger("Dolphin.config_service")
 
-# 最大 Token 数上下限
+# 最大 Token 数上下限（上限对齐 DeepSeek 官方文档的 384K 输出长度）
 MIN_MAX_TOKENS = 1
-MAX_MAX_TOKENS = 200000
+MAX_MAX_TOKENS = 393216
 # 命令前缀最大长度（超出截断）
 COMMAND_PREFIX_MAX_LEN = 10
 # 合法的思考深度
@@ -103,24 +103,19 @@ def set_effort_level(ctx, level):
 
 
 def switch_model(ctx, model_info):
-    """切换模型（含自定义模型专属配置）并重建客户端。
+    """切换模型并按模型解析凭据，然后重建客户端。
 
     Args:
         ctx: 应用上下文
-        model_info: 模型信息字典（get_available_models() 的元素），
-            自定义模型可携带 base_url / api_key
+        model_info: 模型信息字典（get_available_models() 的元素）
 
     Returns:
-        {success, value}
+        {success, value, rebuilt}
     """
     new_model = model_info["name"]
     ctx.current_config['model'] = new_model
-    # 自定义模型有专属的 base_url 和 api_key
-    if model_info.get("custom"):
-        if model_info.get("base_url"):
-            ctx.current_config["base_url"] = model_info["base_url"]
-        if model_info.get("api_key"):
-            ctx.current_config["api_key"] = model_info["api_key"]
+    # 凭据按模型解析：自定义模型用自身配置，内置模型回退到默认服务地址与 .env 密钥
+    ctx.current_config.update(ctx.config.resolve_model_credentials(new_model))
     ctx.config.save_config(ctx.current_config)
     log.info(f"模型已切换: {new_model}")
     rebuild = chat_service.rebuild_chat_instance(ctx)
@@ -141,13 +136,16 @@ def set_api_key(ctx, api_key):
 
 
 def remove_custom_model(ctx, name):
-    """删除自定义模型；若当前正在使用则切回默认模型。
+    """删除自定义模型；若当前正在使用则切回默认模型并同步客户端。
 
     Returns:
         {success, error}：error 为失败原因（成功时为 None）
     """
-    # 如果当前正在使用该模型，切回默认模型
-    if ctx.current_config.get('model') == name:
-        ctx.current_config['model'] = constants.DEFAULT_MODEL
+    was_current = ctx.current_config.get('model') == name
     success, error = ctx.config.remove_custom_model(name)
+    if success and was_current:
+        ctx.current_config['model'] = constants.DEFAULT_MODEL
+        ctx.current_config.update(ctx.config.resolve_model_credentials(constants.DEFAULT_MODEL))
+        ctx.config.save_config(ctx.current_config)
+        chat_service.rebuild_chat_instance(ctx)
     return {"success": success, "error": error}

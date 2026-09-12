@@ -5,6 +5,10 @@
 
 # ===== 默认模型 =====
 DEFAULT_MODEL = "deepseek-v4-flash"
+# 内置模型的服务地址，自定义模型在 models.json 中各自声明
+DEFAULT_BASE_URL = "https://api.deepseek.com"
+# 内置（默认）模型共用的密钥变量名；自定义模型各自派生独立的变量名
+DEFAULT_API_KEY_ENV = "QUICKAI_API_KEY"
 
 # ===== 文件操作限制 =====
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -136,20 +140,31 @@ RECOVERY_WRITE_PREVIEW_LINES = 100  # 写入工具恢复时预览行数
 RECOVERY_READ_LIMIT_LINES = 200    # 读取工具恢复时最大返回行数
 
 # ===== 模型注册表 =====
-MODEL_REGISTRY = {
-    "deepseek-v4-flash": {
+# 仅作为首次运行写入 models.json 的种子定义；之后以 models.json 为准（已存在的条目不覆盖）。
+# 密钥本身存放在 .env，条目通过 api_key_env 指向对应的变量名。
+# max_output_tokens 依据 DeepSeek 官方文档（输出长度最大 384K）
+DEFAULT_MODELS = [
+    {
         "name": "deepseek-v4-flash",
         "description": "DeepSeek V4 Flash",
+        "base_url": DEFAULT_BASE_URL,
         "context_window": 1000000,
+        "max_output_tokens": 393216,
+        "api_key_env": DEFAULT_API_KEY_ENV,
         "deprecated": False,
+        "builtin": True,
     },
-    "deepseek-v4-pro": {
+    {
         "name": "deepseek-v4-pro",
         "description": "DeepSeek V4 Pro",
+        "base_url": DEFAULT_BASE_URL,
         "context_window": 1000000,
+        "max_output_tokens": 393216,
+        "api_key_env": DEFAULT_API_KEY_ENV,
         "deprecated": False,
+        "builtin": True,
     },
-}
+]
 
 # ===== API 请求超时 =====
 # OpenAI SDK 默认 600s，网络故障时会让整个 CLI 冻结过久，这里收紧为 120s

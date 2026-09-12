@@ -116,7 +116,7 @@ class DolphinChat:
         self.callback = callback or (lambda *args, **kwargs: None)
         self.client = OpenAI(
             api_key=_cfg.get("api_key"),
-            base_url=_cfg.get("base_url", "https://api.deepseek.com"),
+            base_url=_cfg.get("base_url", constants.DEFAULT_BASE_URL),
             timeout=constants.API_TIMEOUT
         )
         self.mcp_mgr = mcp_manager.get_mcp_manager()

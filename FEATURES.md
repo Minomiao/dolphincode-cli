@@ -152,7 +152,7 @@
 
 ### Bootstrap (`modules/bootstrap/`)
 - [x] `paths.py` — unified absolute path resolution for all data directories
-- [x] `constants.py` — centralized global constants (limits, thresholds, MODEL_REGISTRY)
+- [x] `constants.py` — centralized global constants (limits, thresholds, built-in model seeds)
 - [x] PyInstaller-compatible: `sys.frozen` detection for packaged root resolution
 
 ### SkillContext (`modules/loader/skill_context.py`)

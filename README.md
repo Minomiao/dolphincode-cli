@@ -9,7 +9,7 @@ pip install -r requirements.txt   # 依赖装入项目 venv/
 python main.py
 ```
 
-首次运行会自动创建 `workplace/` 工作目录、`date/config.json` 与 `date/.env`，按提示配置 API 密钥和模型即可开始使用；旧版配置中的敏感数据会自动迁移到 `.env` 并清除。
+首次运行会自动创建 `workplace/` 工作目录、`date/config.json`、`date/models.json` 与 `date/.env`，按提示配置 API 密钥和模型即可开始使用；模型清单与服务地址存放在 `models.json`，密钥全部存放在 `.env`（模型条目通过 `api_key_env` 指向对应变量，内置模型共用 `QUICKAI_API_KEY`，自定义模型各自一一对应），旧版配置中的相应数据会自动迁移并清除。
 
 模型通过 `/model` 切换，也可添加自定义模型。内置 deepseek-v4-flash 与 deepseek-v4-pro 两个模型，前者侧重快速响应，后者侧重高质量输出；已废弃模型启动时会给出警告。
 
