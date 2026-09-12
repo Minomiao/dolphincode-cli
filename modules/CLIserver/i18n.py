@@ -3,13 +3,17 @@
 界面文案统一通过 t() 获取，未翻译的键回退到简体中文。
 翻译表内置在 modules.bootstrap.translations 中；启动时同步到 date/language/ 目录
 （每种语言一个 {code}.json 文件），之后从这些文件加载（可直接编辑自定义文案）。
+内置文案版本变化时（TRANSLATIONS_VERSION 递增）会刷新语言文件，
+旧文件备份为 {code}.json.bak，用户自行新增的键始终保留。
 新增语言只需在 SUPPORTED_LANGUAGES 中注册，并在 modules.bootstrap.translations 中补充翻译。
 """
 import json
 import os
+import shutil
 
 from modules.logger import get_logger
 from modules.bootstrap.translations import TRANSLATIONS as _BUILTIN_TRANSLATIONS
+from modules.bootstrap.translations import TRANSLATIONS_VERSION as _BUILTIN_VERSION
 
 log = get_logger("Dolphin.i18n")
 
@@ -120,6 +124,9 @@ def _get_language_dir():
     return os.path.join(DATE_DIR, "language")
 
 
+_VERSION_KEY = "_version"
+
+
 def _write_json_file(path, data):
     """以 UTF-8 写入 JSON 数据文件，自动创建父目录。"""
     dirpath = os.path.dirname(path)
@@ -129,12 +136,61 @@ def _write_json_file(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+def _read_language_file(path):
+    """读取语言文件，失败时返回空字典。"""
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except PermissionError as e:
+        log.warning(f"无权限读取语言文件 {path}: {e}")
+    except json.JSONDecodeError as e:
+        log.warning(f"语言文件格式错误 {path}: {e}")
+    except Exception as e:
+        log.warning(f"读取语言文件发生意外错误 {path}: {e}")
+    return {}
+
+
+def _backup_language_file(path):
+    """刷新前把旧语言文件备份为 .bak，便于找回自定义文案。"""
+    try:
+        shutil.copyfile(path, path + ".bak")
+    except (OSError, PermissionError) as e:
+        log.warning(f"备份语言文件失败 {path}: {e}")
+
+
+def _sync_language_file(path, table, data):
+    """同步单个语言文件，返回可直接使用的键值表。
+
+    - 版本一致：文件优先，允许用户自定义既有文案
+    - 文件缺失或版本落后：以内置文案刷新文件（旧文件备份为 .bak），
+      用户自行新增的键（内置表里没有的）始终保留
+    """
+    extras = {k: v for k, v in data.items() if k not in table and k != _VERSION_KEY}
+    if data.get(_VERSION_KEY) == _BUILTIN_VERSION:
+        return {**table, **{k: v for k, v in data.items() if k != _VERSION_KEY}}
+
+    if os.path.exists(path):
+        _backup_language_file(path)
+    if not data:
+        log.info(f"已生成语言文件: {path}")
+    else:
+        log.info(f"已刷新语言文件（内置文案版本 {_BUILTIN_VERSION}）: {path}")
+    try:
+        _write_json_file(path, {_VERSION_KEY: _BUILTIN_VERSION, **table, **extras})
+    except (OSError, PermissionError) as e:
+        log.warning(f"写入语言文件失败 {path}: {e}")
+    return {**table, **extras}
+
+
 def _load_translations():
     """启动时同步语言数据目录并加载翻译表。
 
-    每种语言对应 date/language/{code}.json 一个文件：
-    首次运行时生成，之后从文件加载并与内置表合并（文件优先），
-    便于单独编辑每种语言。
+    每种语言对应 date/language/{code}.json 一个文件：首次运行时生成，
+    之后从文件加载并与内置表合并（文件优先），便于单独编辑每种语言；
+    内置文案版本变化时会刷新文件，避免旧文件盖住更新后的文案。
     """
     global _translations
     lang_dir = _get_language_dir()
@@ -144,26 +200,8 @@ def _load_translations():
             os.makedirs(lang_dir)
         for code, table in _BUILTIN_TRANSLATIONS.items():
             lang_file = os.path.join(lang_dir, f"{code}.json")
-            if os.path.exists(lang_file):
-                try:
-                    with open(lang_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                except FileNotFoundError:
-                    data = {}
-                except PermissionError as e:
-                    log.warning(f"无权限读取语言文件 {lang_file}: {e}")
-                    data = {}
-                except json.JSONDecodeError as e:
-                    log.warning(f"语言文件格式错误 {lang_file}: {e}")
-                    data = {}
-            else:
-                try:
-                    _write_json_file(lang_file, table)
-                    log.info(f"已生成语言文件: {lang_file}")
-                except (OSError, PermissionError) as e:
-                    log.warning(f"写入语言文件失败 {lang_file}: {e}")
-                data = {}
-            merged[code] = {**table, **data}
+            data = _read_language_file(lang_file) if os.path.exists(lang_file) else {}
+            merged[code] = _sync_language_file(lang_file, table, data)
         _translations = merged
         log.info(f"已从语言数据目录加载翻译: {lang_dir}")
     except Exception as e:

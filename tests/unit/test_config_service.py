@@ -53,6 +53,9 @@ class FakeConfigModule:
     def __init__(self):
         self.saved = []
         self.remove_results = []  # [(success, error)] 队列
+        self.api_key_writes = []  # [(model_name, api_key)]
+        self.model_updates = []  # [{name, description, base_url, context_window, api_key}]
+        self.update_result = None  # 非 None 时作为 update_custom_model 的返回值
 
     def save_config(self, config):
         self.saved.append(config)
@@ -61,6 +64,20 @@ class FakeConfigModule:
         if not self.remove_results:
             return True, ""
         return self.remove_results.pop(0)
+
+    def set_model_api_key(self, name, api_key):
+        self.api_key_writes.append((name, api_key))
+        return True, ""
+
+    def update_custom_model(self, name, description=None, base_url=None,
+                            context_window=None, api_key=None):
+        self.model_updates.append({
+            "name": name, "description": description, "base_url": base_url,
+            "context_window": context_window, "api_key": api_key,
+        })
+        if self.update_result is not None:
+            return self.update_result
+        return True, ""
 
     def resolve_model_credentials(self, name):
         """按模型名返回凭据：自定义模型用自身声明，内置模型用默认地址。"""
@@ -245,6 +262,77 @@ class TestModelSwitch(unittest.TestCase):
         self.assertFalse(result["success"])
         self.assertEqual(result["error"], "未找到自定义模型 'my-model'")
         self.assertEqual(self.ctx.current_config["model"], "other-model")
+
+
+class TestSetModelApiKey(unittest.TestCase):
+    """按模型更新 API 密钥。"""
+
+    def setUp(self):
+        self.ctx = FakeCtx()
+
+    def test_current_model_syncs_and_rebuilds(self):
+        result = config_service.set_model_api_key(
+            self.ctx, constants.DEFAULT_MODEL, "sk-new")
+        self.assertTrue(result["success"])
+        self.assertTrue(result["rebuilt"])
+        self.assertEqual(self.ctx.current_config["api_key"], "sk-new")
+        self.assertEqual(len(self.ctx.chat_module.instances), 2)
+
+    def test_other_model_writes_env_only(self):
+        self.ctx.current_config["model"] = "other-model"
+        result = config_service.set_model_api_key(self.ctx, "my-model", "sk-x")
+        self.assertTrue(result["success"])
+        self.assertEqual(self.ctx.config_module.api_key_writes, [("my-model", "sk-x")])
+        self.assertNotIn("rebuilt", result)
+        # 未切换当前模型，客户端不重建
+        self.assertEqual(len(self.ctx.chat_module.instances), 1)
+
+
+class TestUpdateModel(unittest.TestCase):
+    """修改已有模型的配置。"""
+
+    def setUp(self):
+        self.ctx = FakeCtx()
+
+    def test_key_only_on_current_model_rebuilds(self):
+        result = config_service.update_model(self.ctx, constants.DEFAULT_MODEL,
+                                             {"api_key": "sk-new"})
+        self.assertTrue(result["success"])
+        self.assertTrue(result["rebuilt"])
+        self.assertEqual(self.ctx.current_config["api_key"], "sk-new")
+        self.assertEqual(len(self.ctx.chat_module.instances), 2)
+        # 仅改密钥走专用分支，不走通用字段更新
+        self.assertEqual(self.ctx.config_module.model_updates, [])
+
+    def test_fields_on_custom_model_persist_without_rebuild(self):
+        self.ctx.current_config["model"] = "other-model"
+        result = config_service.update_model(self.ctx, "my-model", {
+            "description": "desc", "base_url": "https://x.example.com/v1",
+            "context_window": 64000, "api_key": "sk-x"})
+        self.assertTrue(result["success"])
+        self.assertFalse(result["rebuilt"])
+        self.assertEqual(len(self.ctx.chat_module.instances), 1)
+        self.assertEqual(self.ctx.config_module.model_updates, [{
+            "name": "my-model", "description": "desc",
+            "base_url": "https://x.example.com/v1",
+            "context_window": 64000, "api_key": "sk-x"}])
+
+    def test_fields_on_current_custom_model_rebuilds(self):
+        self.ctx.current_config["model"] = "my-model"
+        result = config_service.update_model(self.ctx, "my-model", {
+            "description": "desc", "base_url": "https://x.example.com/v1"})
+        self.assertTrue(result["rebuilt"])
+        # 凭据按模型重新解析后写回内存
+        self.assertEqual(self.ctx.current_config["base_url"], "https://example.com/v1")
+        self.assertEqual(len(self.ctx.chat_module.instances), 2)
+
+    def test_failure_returns_error(self):
+        self.ctx.config_module.update_result = (False, "保存模型配置失败")
+        result = config_service.update_model(self.ctx, "my-model",
+                                             {"base_url": "https://x.example.com/v1"})
+        self.assertFalse(result["success"])
+        self.assertEqual(result["error"], "保存模型配置失败")
+        self.assertEqual(len(self.ctx.chat_module.instances), 1)
 
 
 class TestGetSettings(unittest.TestCase):

@@ -371,6 +371,62 @@ def get_model_metadata(model_name):
     return None
 
 
+def set_model_api_key(model_name, api_key):
+    """更新指定模型映射的 .env 密钥（不改变当前模型）。
+
+    Returns:
+        (True, "") 成功 / (False, 错误信息) 失败
+    """
+    meta = get_model_metadata(model_name)
+    if not meta:
+        return False, f"未找到模型 '{model_name}'"
+    env_name = meta.get("api_key_env") or constants.DEFAULT_API_KEY_ENV
+    if not _write_env_key(env_name, api_key):
+        return False, "写入 .env 失败"
+    log.info(f"模型 '{model_name}' 的密钥已更新（变量 {env_name}）")
+    return True, ""
+
+
+def update_custom_model(model_name, description=None, base_url=None,
+                        context_window=None, api_key=None):
+    """更新自定义模型的配置（模型名不可修改）。
+
+    api_key 写入该模型映射的 .env 变量，其余字段写入 models.json；
+    参数为 None 表示保持不变。
+
+    Returns:
+        (True, "") 成功 / (False, 错误信息) 失败
+    """
+    models = _load_models()
+    entries = list(models.get("models", []))
+    for i, m in enumerate(entries):
+        if m.get("name") != model_name:
+            continue
+        if not m.get("custom"):
+            return False, f"内置模型 '{model_name}' 不可修改配置"
+
+        updated = dict(models)
+        updated["models"] = [dict(e) for e in entries]
+        target = updated["models"][i]
+        if description is not None:
+            target["description"] = description
+        if base_url is not None:
+            target["base_url"] = base_url
+        if context_window is not None:
+            target["context_window"] = context_window
+
+        if api_key is not None:
+            env_name = target.get("api_key_env") or constants.DEFAULT_API_KEY_ENV
+            if not _write_env_key(env_name, api_key):
+                return False, "写入 .env 失败"
+
+        if not _save_models(updated):
+            return False, "保存模型配置失败"
+        log.info(f"已更新模型配置: {model_name}")
+        return True, ""
+    return False, f"未找到模型 '{model_name}'"
+
+
 def resolve_model_credentials(model_name):
     """解析指定模型生效的 base_url 与 api_key。
 

@@ -46,7 +46,7 @@ def visible_range(index, total, line_height=1):
 
 
 def navigate(title, subtitle, options, label_fn, on_enter, hint,
-             initial=0, extra_key=None, line_height=1):
+             initial=0, extra_key=None, line_height=1, refresh_fn=None):
     """方向键列表导航循环。
 
     Args:
@@ -60,19 +60,37 @@ def navigate(title, subtitle, options, label_fn, on_enter, hint,
         extra_key: callable(key, option, index) -> bool；处理额外字符键，
             返回 True 表示已处理并继续循环
         line_height: 每个条目占用的终端行数（多行条目用于窗口滚动）
+        refresh_fn: callable() -> dict | None；提供时每轮重新取值，
+            可用键 options / subtitle / hint，未提供的键沿用入参值。
+            列表会被就地增删的场景（如模型管理）用它避免显示过期内容
 
     Returns:
         回车确认退出的选中下标；Esc/返回时为 None
     """
+
+    def _refresh():
+        """取最新界面数据；未提供 refresh_fn 时返回入参快照。"""
+        if refresh_fn is None:
+            return options, subtitle, hint
+        fresh = refresh_fn() or {}
+        return (fresh.get("options", options),
+                fresh.get("subtitle", subtitle),
+                fresh.get("hint", hint))
+
+    options, subtitle, hint = _refresh()
     if not options:
         return None
     if not console_input.is_available():
         return _number_menu(title, subtitle, options, label_fn, on_enter,
-                            hint, initial, line_height)
+                            hint, initial, line_height, refresh_fn)
 
     index = initial % len(options)
     console_input.flush()
     while True:
+        options, subtitle, hint = _refresh()
+        if not options:
+            return None
+        index = min(index, len(options) - 1)
         clear_screen()
         _console.print()
         _console.print(create_header_panel(title, subtitle))
@@ -113,12 +131,22 @@ def navigate(title, subtitle, options, label_fn, on_enter, hint,
 
 
 def _number_menu(title, subtitle, options, label_fn, on_enter, hint,
-                 initial=0, line_height=1):
+                 initial=0, line_height=1, refresh_fn=None):
     """无交互控制台（管道/重定向）时的纯文本数字回退菜单。"""
     cmd = state.cmd
     index = initial % len(options)
 
     def _show():
+        """渲染一次菜单；选项被清空时返回 False 表示应当退出。"""
+        nonlocal options, subtitle, hint, index
+        if refresh_fn is not None:
+            fresh = refresh_fn() or {}
+            options = fresh.get("options", options)
+            subtitle = fresh.get("subtitle", subtitle)
+            hint = fresh.get("hint", hint)
+            if not options:
+                return False
+            index = min(index, len(options) - 1)
         clear_screen()
         _console.print()
         _console.print(create_header_panel(title, subtitle))
@@ -139,9 +167,11 @@ def _number_menu(title, subtitle, options, label_fn, on_enter, hint,
         _console.print(create_footer_panel(
             f"1-{total} 选择 | {cmd.get_command_keyword('back')} 返回 | {hint}"
         ))
+        return True
 
     while True:
-        _show()
+        if not _show():
+            return None
         choice = input("\n> ").strip()
         if not choice or choice == cmd.get_command_keyword('back'):
             return None

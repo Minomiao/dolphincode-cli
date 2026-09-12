@@ -4,7 +4,7 @@
     ctx.current_config: dict                  当前配置
     ctx.chat_instance: DolphinChat            当前对话实例
     ctx.chat: 模块                            提供 DolphinChat 类（用于重建）
-    ctx.config: 模块                          提供 save_config() / remove_custom_model()
+    ctx.config: 模块                          提供 save_config() / remove_custom_model() / update_custom_model() / set_model_api_key()
     ctx.cmd: 模块                             提供 save_commands()（前缀变更时）
     ctx.show_thinking: bool                   思考过程显示开关
     ctx.effort_level: str                     思考深度
@@ -133,6 +133,53 @@ def set_api_key(ctx, api_key):
     log.info("API 密钥已更新")
     rebuild = chat_service.rebuild_chat_instance(ctx)
     return {"success": True, "rebuilt": rebuild.get('success')}
+
+
+def set_model_api_key(ctx, model_name, api_key):
+    """更新指定模型的 API 密钥。
+
+    若该模型正是当前模型，会同步内存配置并重建客户端；
+    否则只更新它在 .env 中映射的变量，不触碰当前模型。
+
+    Returns:
+        {success, rebuilt} 或 {success: False, error}
+    """
+    if ctx.current_config.get('model') == model_name:
+        return set_api_key(ctx, api_key)
+    success, error = ctx.config.set_model_api_key(model_name, api_key)
+    return {"success": success, "error": error}
+
+
+def update_model(ctx, model_name, values):
+    """更新指定模型的配置；若它正是当前模型则同步内存并重建客户端。
+
+    Args:
+        model_name: 目标模型名
+        values: {字段名: 新值}，可含 description / base_url / context_window / api_key；
+            仅传 api_key 时走按模型写密钥的分支
+
+    Returns:
+        {success, rebuilt} 或 {success: False, error}
+    """
+    if set(values) == {"api_key"}:
+        return set_model_api_key(ctx, model_name, values["api_key"])
+
+    success, error = ctx.config.update_custom_model(
+        model_name,
+        description=values.get("description"),
+        base_url=values.get("base_url"),
+        context_window=values.get("context_window"),
+        api_key=values.get("api_key"))
+    if not success:
+        return {"success": False, "error": error}
+
+    is_current = ctx.current_config.get('model') == model_name
+    if is_current:
+        # 服务地址等凭据可能已变化，刷新内存配置并重建客户端
+        ctx.current_config.update(ctx.config.resolve_model_credentials(model_name))
+        chat_service.rebuild_chat_instance(ctx)
+    log.info(f"模型配置已更新: {model_name}")
+    return {"success": True, "rebuilt": is_current}
 
 
 def remove_custom_model(ctx, name):
