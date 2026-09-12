@@ -9,6 +9,7 @@
 """
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -91,10 +92,60 @@ class TestLanguageFileSync(unittest.TestCase):
 
         self.assertEqual(data["my.custom.key"], "keep-me")
 
+    def test_custom_key_in_default_language_is_not_reported_missing(self):
+        """默认语言里的用户自定义键不应被当作其他语言缺失（避免误报刷屏）。"""
+        self._path().write_text(json.dumps({"my.custom.key": "keep-me"}, ensure_ascii=False),
+                                encoding="utf-8")
+
+        with patch.object(i18n, "log") as log_mock:
+            self._load()
+
+        messages = " ".join(str(call.args[0]) for call in log_mock.warning.call_args_list)
+        self.assertNotIn("my.custom.key", messages)
+
     def test_new_builtin_keys_are_visible(self):
         i18n._load_translations()
         # 版本一致时新增键通过合并生效
         self.assertEqual(i18n.t("form.hint"), translations.TRANSLATIONS["zh-CN"]["form.hint"])
+
+    def test_runtime_tables_keep_all_builtin_keys(self):
+        """语言文件即使缺键，运行时表也应回退内置，不出现缺失。"""
+        self._path().write_text(json.dumps({"model.hint": "PARTIAL"}, ensure_ascii=False),
+                                encoding="utf-8")
+
+        i18n._load_translations()
+
+        reference = set(translations.TRANSLATIONS[i18n.DEFAULT_LANGUAGE])
+        for code, table in i18n._translations.items():
+            self.assertTrue(reference.issubset(set(table)), f"{code} 运行时缺少内置键")
+
+
+class TestTranslationCoverage(unittest.TestCase):
+    """内置翻译表的键与占位符一致性。"""
+
+    def _reference(self):
+        return translations.TRANSLATIONS[i18n.DEFAULT_LANGUAGE]
+
+    def test_every_language_covers_all_keys(self):
+        reference = set(self._reference())
+        for code, table in translations.TRANSLATIONS.items():
+            missing = sorted(reference - set(table))
+            self.assertEqual(missing, [], f"{code} 缺少文案键: {missing}")
+
+    def test_no_language_defines_unknown_keys(self):
+        reference = set(self._reference())
+        for code, table in translations.TRANSLATIONS.items():
+            unknown = sorted(set(table) - reference)
+            self.assertEqual(unknown, [], f"{code} 存在未知键（可能拼写错误）: {unknown}")
+
+    def test_placeholders_match_reference(self):
+        pattern = re.compile(r"\{\w+\}")
+        for code, table in translations.TRANSLATIONS.items():
+            for key, text in table.items():
+                expected = sorted(pattern.findall(self._reference().get(key, "")))
+                actual = sorted(pattern.findall(text))
+                self.assertEqual(actual, expected,
+                                 f"{code}.{key} 占位符不一致: {actual} != {expected}")
 
 
 if __name__ == "__main__":

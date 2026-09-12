@@ -185,6 +185,23 @@ def _sync_language_file(path, table, data):
     return {**table, **extras}
 
 
+def _report_missing_keys(merged):
+    """提示各语言相对默认语言缺失的文案键，便于及早发现漏翻。
+
+    基准取「内置」默认语言键集而非运行时合并表：用户在默认语言里新增的
+    自定义键不属于出厂文案，不应被误报为其他语言缺失。
+    """
+    reference = set(_BUILTIN_TRANSLATIONS.get(DEFAULT_LANGUAGE, {}))
+    for code, table in merged.items():
+        if code == DEFAULT_LANGUAGE:
+            continue
+        missing = sorted(reference - set(table))
+        if missing:
+            preview = ", ".join(missing[:8])
+            suffix = " ..." if len(missing) > 8 else ""
+            log.warning(f"语言 {code} 缺少 {len(missing)} 个文案键: {preview}{suffix}")
+
+
 def _load_translations():
     """启动时同步语言数据目录并加载翻译表。
 
@@ -202,6 +219,7 @@ def _load_translations():
             lang_file = os.path.join(lang_dir, f"{code}.json")
             data = _read_language_file(lang_file) if os.path.exists(lang_file) else {}
             merged[code] = _sync_language_file(lang_file, table, data)
+        _report_missing_keys(merged)
         _translations = merged
         log.info(f"已从语言数据目录加载翻译: {lang_dir}")
     except Exception as e:
