@@ -8,7 +8,8 @@
 # 内置文案版本：修改既有文案的取值时递增，启动时会据此刷新 date/language/ 下的
 # 文件（旧文件备份为 .bak），避免旧文件把更新后的内置文案盖住。
 # 2 -> 3：补齐 38 种语言缺失的表单/模型编辑文案，让语言文件包含完整键集
-TRANSLATIONS_VERSION = 3
+# 3 -> 4：新增多模态图片相关文案（main.image_stripped）
+TRANSLATIONS_VERSION = 4
 
 TRANSLATIONS = {
     "zh-CN": {
@@ -35,6 +36,7 @@ TRANSLATIONS = {
         "main.api_error": "API 错误: {error}",
         "main.error": "错误: {error}",
         "main.list_separator": "、",
+        "main.image_stripped": "当前模型不支持视觉，已去除 {count} 张图片，仅发送文字内容",
 
         # ===== 思考过程显示 =====
         "chat.thinking_header": "思考过程:",
@@ -177,6 +179,7 @@ TRANSLATIONS = {
         "main.api_error": "API 錯誤：{error}",
         "main.error": "錯誤：{error}",
         "main.list_separator": "、",
+        "main.image_stripped": "當前模型不支援視覺，已移除 {count} 張圖片，僅發送文字內容",
 
         "chat.thinking_header": "思考過程：",
         "chat.thinking_in_progress": "思考中 -{elapsed}s",
@@ -303,6 +306,7 @@ TRANSLATIONS = {
         "main.api_error": "API Error: {error}",
         "main.error": "Error: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "The current model does not support vision. {count} image(s) removed, sending text only",
 
         "chat.thinking_header": "Thinking:",
         "chat.thinking_in_progress": "Thinking -{elapsed}s",
@@ -432,6 +436,7 @@ TRANSLATIONS = {
         "main.api_error": "API エラー: {error}",
         "main.error": "エラー: {error}",
         "main.list_separator": "、",
+        "main.image_stripped": "現在のモデルは画像認識に対応していません。{count} 枚の画像を取り除き、テキストのみ送信しました",
 
         "chat.thinking_header": "思考過程:",
         "chat.thinking_in_progress": "思考中 -{elapsed}s",
@@ -558,6 +563,7 @@ TRANSLATIONS = {
         "main.api_error": "API 오류: {error}",
         "main.error": "오류: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "현재 모델은 비전을 지원하지 않아 이미지 {count}장을 제거하고 텍스트만 전송했습니다",
 
         "chat.thinking_header": "사고 과정:",
         "chat.thinking_in_progress": "사고 중 -{elapsed}s",
@@ -684,6 +690,7 @@ TRANSLATIONS = {
         "main.api_error": "Erreur API : {error}",
         "main.error": "Erreur : {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Le modèle actuel ne prend pas en charge la vision. {count} image(s) supprimée(s), envoi du texte uniquement",
 
         "chat.thinking_header": "Réflexion :",
         "chat.thinking_in_progress": "Réflexion en cours -{elapsed}s",
@@ -810,6 +817,7 @@ TRANSLATIONS = {
         "main.api_error": "API-Fehler: {error}",
         "main.error": "Fehler: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Das aktuelle Modell unterstützt keine Bildverarbeitung. {count} Bild(er) entfernt, nur Text wird gesendet",
 
         "chat.thinking_header": "Gedanken:",
         "chat.thinking_in_progress": "Denke nach -{elapsed}s",
@@ -936,6 +944,7 @@ TRANSLATIONS = {
         "main.api_error": "Error de API: {error}",
         "main.error": "Error: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "El modelo actual no admite visión. Se quitaron {count} imagen(es), se envía solo texto",
 
         "chat.thinking_header": "Pensamiento:",
         "chat.thinking_in_progress": "Pensando -{elapsed}s",
@@ -1063,6 +1072,7 @@ TRANSLATIONS = {
         "main.api_error": "Ошибка API: {error}",
         "main.error": "Ошибка: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Текущая модель не поддерживает зрение. Удалено изображений: {count}, отправлен только текст",
 
         "chat.thinking_header": "Размышления:",
         "chat.thinking_in_progress": "Размышляю -{elapsed}s",
@@ -1189,6 +1199,7 @@ TRANSLATIONS = {
         "main.api_error": "Erro de API: {error}",
         "main.error": "Erro: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "O modelo atual não suporta visão. {count} imagem(ns) removida(s), enviando apenas texto",
 
         "chat.thinking_header": "Pensamento:",
         "chat.thinking_in_progress": "Pensando -{elapsed}s",
@@ -1315,6 +1326,7 @@ TRANSLATIONS = {
         "main.api_error": "Errore API: {error}",
         "main.error": "Errore: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Il modello attuale non supporta la visione. {count} immagine/i rimossa/e, invio solo testo",
 
         "chat.thinking_header": "Ragionamento:",
         "chat.thinking_in_progress": "Ragionamento in corso -{elapsed}s",
@@ -1441,6 +1453,7 @@ TRANSLATIONS = {
         "main.api_error": "API-fout: {error}",
         "main.error": "Fout: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Het huidige model ondersteunt geen visie. {count} afbeelding(en) verwijderd, alleen tekst verzonden",
 
         "chat.thinking_header": "Denkproces:",
         "chat.thinking_in_progress": "Denken -{elapsed}s",
@@ -1567,6 +1580,7 @@ TRANSLATIONS = {
         "main.api_error": "Błąd API: {error}",
         "main.error": "Błąd: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Obecny model nie obsługuje wizji. Usunięto obrazy: {count}, wysłano tylko tekst",
 
         "chat.thinking_header": "Myślenie:",
         "chat.thinking_in_progress": "Myślenie -{elapsed}s",
@@ -1693,6 +1707,7 @@ TRANSLATIONS = {
         "main.api_error": "API Hatası: {error}",
         "main.error": "Hata: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Mevcut model görseli desteklemiyor. {count} görsel kaldırıldı, yalnızca metin gönderiliyor",
 
         "chat.thinking_header": "Düşünme:",
         "chat.thinking_in_progress": "Düşünüyor -{elapsed}s",
@@ -1819,6 +1834,7 @@ TRANSLATIONS = {
         "main.api_error": "خطأ API: {error}",
         "main.error": "خطأ: {error}",
         "main.list_separator": "، ",
+        "main.image_stripped": "النموذج الحالي لا يدعم الرؤية. تمت إزالة {count} صورة، وإرسال النص فقط",
 
         "chat.thinking_header": "التفكير:",
         "chat.thinking_in_progress": "جاري التفكير -{elapsed}s",
@@ -1945,6 +1961,7 @@ TRANSLATIONS = {
         "main.api_error": "ข้อผิดพลาด API: {error}",
         "main.error": "ข้อผิดพลาด: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "โมเดลปัจจุบันไม่รองรับการมองเห็น ลบรูปภาพ {count} รูปแล้ว ส่งเฉพาะข้อความ",
 
         "chat.thinking_header": "ความคิด:",
         "chat.thinking_in_progress": "กำลังคิด -{elapsed}s",
@@ -2071,6 +2088,7 @@ TRANSLATIONS = {
         "main.api_error": "Lỗi API: {error}",
         "main.error": "Lỗi: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Mô hình hiện tại không hỗ trợ thị giác. Đã xóa {count} ảnh, chỉ gửi nội dung văn bản",
 
         "chat.thinking_header": "Suy nghĩ:",
         "chat.thinking_in_progress": "Đang suy nghĩ -{elapsed}s",
@@ -2197,6 +2215,7 @@ TRANSLATIONS = {
         "main.api_error": "Kesalahan API: {error}",
         "main.error": "Kesalahan: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Model saat ini tidak mendukung visi. {count} gambar dihapus, hanya mengirim teks",
 
         "chat.thinking_header": "Pemikiran:",
         "chat.thinking_in_progress": "Berpikir -{elapsed}s",
@@ -2323,6 +2342,7 @@ TRANSLATIONS = {
         "main.api_error": "API त्रुटि: {error}",
         "main.error": "त्रुटि: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "वर्तमान मॉडल विज़न का समर्थन नहीं करता। {count} छवि(याँ) हटाई गईं, केवल पाठ भेजा जा रहा है",
 
         "chat.thinking_header": "सोच:",
         "chat.thinking_in_progress": "सोच रहा है -{elapsed}s",
@@ -2449,6 +2469,7 @@ TRANSLATIONS = {
         "main.api_error": "API-fel: {error}",
         "main.error": "Fel: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Den aktuella modellen stöder inte syn. {count} bild(er) har tagits bort, skickar endast text",
 
         "chat.thinking_header": "Tankar:",
         "chat.thinking_in_progress": "Tänker -{elapsed}s",
@@ -2575,6 +2596,7 @@ TRANSLATIONS = {
         "main.api_error": "Помилка API: {error}",
         "main.error": "Помилка: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Поточна модель не підтримує зір. Вилучено зображень: {count}, надіслано лише текст",
 
         "chat.thinking_header": "Роздуми:",
         "chat.thinking_in_progress": "Розмірковую -{elapsed}s",
@@ -2701,6 +2723,7 @@ TRANSLATIONS = {
         "main.api_error": "שגיאת API: {error}",
         "main.error": "שגיאה: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "המודל הנוכחי אינו תומך בראייה. {count} תמונות הוסרו, נשלח טקסט בלבד",
 
         "chat.thinking_header": "חשיבה:",
         "chat.thinking_in_progress": "חושב -{elapsed}s",
@@ -2827,6 +2850,7 @@ TRANSLATIONS = {
         "main.api_error": "Chyba API: {error}",
         "main.error": "Chyba: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Aktuální model nepodporuje vidění. Odebráno obrázků: {count}, odesílá se pouze text",
 
         "chat.thinking_header": "Myšlení:",
         "chat.thinking_in_progress": "Přemýšlím -{elapsed}s",
@@ -2953,6 +2977,7 @@ TRANSLATIONS = {
         "main.api_error": "API hiba: {error}",
         "main.error": "Hiba: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Az aktuális modell nem támogatja a látást. {count} kép eltávolítva, csak szöveg kerül elküldésre",
 
         "chat.thinking_header": "Gondolkodás:",
         "chat.thinking_in_progress": "Gondolkodás -{elapsed}s",
@@ -3079,6 +3104,7 @@ TRANSLATIONS = {
         "main.api_error": "Eroare API: {error}",
         "main.error": "Eroare: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Modelul actual nu acceptă viziune. {count} imagini eliminate, se trimite doar text",
 
         "chat.thinking_header": "Gândire:",
         "chat.thinking_in_progress": "Se gândește -{elapsed}s",
@@ -3205,6 +3231,7 @@ TRANSLATIONS = {
         "main.api_error": "API-fejl: {error}",
         "main.error": "Fejl: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Den aktuelle model understøtter ikke vision. {count} billede(r) fjernet, sender kun tekst",
 
         "chat.thinking_header": "Tanker:",
         "chat.thinking_in_progress": "Tænker -{elapsed}s",
@@ -3331,6 +3358,7 @@ TRANSLATIONS = {
         "main.api_error": "API-virhe: {error}",
         "main.error": "Virhe: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Nykyinen malli ei tue näköä. {count} kuva(a) poistettu, lähetetään vain teksti",
 
         "chat.thinking_header": "Ajattelu:",
         "chat.thinking_in_progress": "Ajattelee -{elapsed}s",
@@ -3457,6 +3485,7 @@ TRANSLATIONS = {
         "main.api_error": "API-feil: {error}",
         "main.error": "Feil: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Den nåværende modellen støtter ikke visjon. {count} bilde(r) fjernet, sender kun tekst",
 
         "chat.thinking_header": "Tanker:",
         "chat.thinking_in_progress": "Tenker -{elapsed}s",
@@ -3583,6 +3612,7 @@ TRANSLATIONS = {
         "main.api_error": "Ralat API: {error}",
         "main.error": "Ralat: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Model semasa tidak menyokong visi. {count} imej dibuang, hanya menghantar teks",
 
         "chat.thinking_header": "Pemikiran:",
         "chat.thinking_in_progress": "Berfikir -{elapsed}s",
@@ -3709,6 +3739,7 @@ TRANSLATIONS = {
         "main.api_error": "Σφάλμα API: {error}",
         "main.error": "Σφάλμα: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Το τρέχον μοντέλο δεν υποστηρίζει όραση. Αφαιρέθηκαν {count} εικόνες, αποστέλλεται μόνο κείμενο",
 
         "chat.thinking_header": "Σκέψη:",
         "chat.thinking_in_progress": "Σκέφτεται -{elapsed}s",
@@ -3835,6 +3866,7 @@ TRANSLATIONS = {
         "main.api_error": "API грешка: {error}",
         "main.error": "Грешка: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Текущият модел не поддържа зрение. Премахнати изображения: {count}, изпраща се само текст",
 
         "chat.thinking_header": "Мислене:",
         "chat.thinking_in_progress": "Мисли -{elapsed}s",
@@ -3961,6 +3993,7 @@ TRANSLATIONS = {
         "main.api_error": "API greška: {error}",
         "main.error": "Greška: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Тренутни модел не подржава вид. Уклоњено слика: {count}, шаље се само текст",
 
         "chat.thinking_header": "Razmišljanje:",
         "chat.thinking_in_progress": "Razmišlja -{elapsed}s",
@@ -4087,6 +4120,7 @@ TRANSLATIONS = {
         "main.api_error": "API klaida: {error}",
         "main.error": "Klaida: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Dabartinis modelis nepalaiko regėjimo. Pašalinta vaizdų: {count}, siunčiamas tik tekstas",
 
         "chat.thinking_header": "Mąstymas:",
         "chat.thinking_in_progress": "Mąsto -{elapsed}s",
@@ -4213,6 +4247,7 @@ TRANSLATIONS = {
         "main.api_error": "خطای API: {error}",
         "main.error": "خطا: {error}",
         "main.list_separator": "، ",
+        "main.image_stripped": "مدل فعلی از بینایی پشتیبانی نمی‌کند. {count} تصویر حذف شد، فقط متن ارسال می‌شود",
 
         "chat.thinking_header": "تفکر:",
         "chat.thinking_in_progress": "در حال فکر کردن -{elapsed}s",
@@ -4339,6 +4374,7 @@ TRANSLATIONS = {
         "main.api_error": "API ত্রুটি: {error}",
         "main.error": "ত্রুটি: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "বর্তমান মডেল ভিশন সমর্থন করে না। {count}টি ছবি সরানো হয়েছে, শুধু টেক্সট পাঠানো হচ্ছে",
 
         "chat.thinking_header": "চিন্তা:",
         "chat.thinking_in_progress": "চিন্তা করছে -{elapsed}s",
@@ -4465,6 +4501,7 @@ TRANSLATIONS = {
         "main.api_error": "API Error: {error}",
         "main.error": "Error: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Hindi sinusuportahan ng kasalukuyang model ang vision. {count} imahe ang tinanggal, text lang ang ipinapadala",
 
         "chat.thinking_header": "Pag-iisip:",
         "chat.thinking_in_progress": "Nag-iisip -{elapsed}s",
@@ -4591,6 +4628,7 @@ TRANSLATIONS = {
         "main.api_error": "Hitilafu ya API: {error}",
         "main.error": "Hitilafu: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "Mfano wa sasa hautumii uoni. Picha {count} zimeondolewa, maandishi pekee yanatumwa",
 
         "chat.thinking_header": "Kufikiri:",
         "chat.thinking_in_progress": "Inafikiri -{elapsed}s",
@@ -4717,6 +4755,7 @@ TRANSLATIONS = {
         "main.api_error": "API შეცდომა: {error}",
         "main.error": "შეცდომა: {error}",
         "main.list_separator": ", ",
+        "main.image_stripped": "მიმდინარე მოდელი არ უჭერს მხარს ხედვას. ამოღებულია {count} სურათი, იგზავნება მხოლოდ ტექსტი",
 
         "chat.thinking_header": "აზროვნება:",
         "chat.thinking_in_progress": "ფიქრობს -{elapsed}s",
@@ -4843,6 +4882,7 @@ TRANSLATIONS = {
         "main.api_error": "API 之謬：{error}",
         "main.error": "謬也：{error}",
         "main.list_separator": "、",
+        "main.image_stripped": "今之模型不能觀圖，已去圖 {count} 幅，僅傳文字",
 
         "chat.thinking_header": "思之程：",
         "chat.thinking_in_progress": "思中 -{elapsed}s",
@@ -4969,6 +5009,7 @@ TRANSLATIONS = {
         "main.api_error": "API 坏掉了喵：{error}",
         "main.error": "出错了喵：{error}",
         "main.list_separator": "、",
+        "main.image_stripped": "现在的脑袋看不了图喵，{count} 张图丢掉了，只传文字喵",
 
         "chat.thinking_header": "思考喵：",
         "chat.thinking_in_progress": "努力思考中喵 -{elapsed}s",

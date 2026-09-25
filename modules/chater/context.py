@@ -74,6 +74,10 @@ class ContextManager:
     def __init__(self, get_system_prompt, get_context_prompt=None):
         self._get_system_prompt = get_system_prompt
         self._get_context_prompt = get_context_prompt
+        # 多模态：parts 构建器由 chat 层注入（依赖 client 与模型配置），
+        # vision_enabled 关闭时带 _images 的消息降级为纯文本发送
+        self.image_parts_builder = None
+        self.vision_enabled = False
         self._cumulative_prompt_tokens = 0
         self._cumulative_completion_tokens = 0
         # 上一轮的 prompt_tokens（用于计算本轮增量）
@@ -88,6 +92,8 @@ class ContextManager:
 
         动态上下文（工作目录、目录结构、努力程度）通过独立 _context 字段存储，
         发送时从 content + _context 拼接，写回时只写 _context 不污染 content。
+        带 _images 的 user 消息在发送时转换为 content parts 数组（需注入
+        image_parts_builder 且 vision_enabled），非视觉模型降级为纯文本。
         末尾 user message 额外追加本轮 context。
         _send=False 的消息不进入发送列表（工具调用与回复保持成对）。
         保持前缀稳定以提高 DeepSeek 缓存命中率。
@@ -109,9 +115,27 @@ class ContextManager:
         # 过滤不发送消息，保留原始索引以便 _context 写回定位
         sendable = _filter_sendable(source)
 
-        # 构建发送用列表：对有 _context 的 user 消息还原完整 content
+        # 构建发送用列表：对有 _context 的 user 消息还原完整 content；
+        # 带 _images 的 user 消息转换为 content parts 数组（视觉模型），
+        # 非视觉模型降级为纯文本（去图发送，警告由调用方负责）
         result = [system_message]
         for _, msg in sendable:
+            if msg.get("role") == "user" and msg.get(constants.MSG_IMAGES_FIELD) \
+                    and self.image_parts_builder:
+                text = msg["content"]
+                if msg.get("_context"):
+                    text = text + "\n\n" + msg["_context"]
+                msg = dict(msg)
+                msg.pop("_context", None)
+                if self.vision_enabled:
+                    parts = [{"type": "text", "text": text}]
+                    parts.extend(self.image_parts_builder(msg[constants.MSG_IMAGES_FIELD]))
+                    msg["content"] = parts
+                else:
+                    log.debug(f"模型不支持视觉，{len(msg[constants.MSG_IMAGES_FIELD])} 张图片已降级去除")
+                    msg["content"] = text
+                result.append(msg)
+                continue
             if msg.get("role") == "user" and msg.get("_context"):
                 msg = dict(msg)
                 msg["content"] = msg["content"] + "\n\n" + msg.pop("_context")
@@ -124,8 +148,20 @@ class ContextManager:
             if context:
                 for k in range(len(result) - 1, 0, -1):
                     if result[k].get("role") == "user":
+                        content = result[k].get("content")
                         result[k] = dict(result[k])
-                        result[k]["content"] = result[k]["content"] + "\n\n" + context
+                        if isinstance(content, list):
+                            # parts 数组：追加到最后一个 text part
+                            new_parts = [dict(p) if isinstance(p, dict) else p for p in content]
+                            for part in reversed(new_parts):
+                                if isinstance(part, dict) and part.get("type") == "text":
+                                    part["text"] = part["text"] + "\n\n" + context
+                                    break
+                            else:
+                                new_parts.append({"type": "text", "text": context})
+                            result[k]["content"] = new_parts
+                        else:
+                            result[k]["content"] = content + "\n\n" + context
                         # 写回 _context，content 保持不变（result[k] 对应 sendable[k-1]）
                         orig_idx = base + sendable[k - 1][0]
                         messages[orig_idx] = dict(messages[orig_idx])

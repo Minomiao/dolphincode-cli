@@ -138,6 +138,11 @@ FILE_ATTRIBUTE_HIDDEN = 0x2
 # 缺省（字段不存在）一律视为 True，保证存量数据行为不变。
 MSG_SEND_FIELD = "_send"        # 消息级控制：False = 不发送给 API（上下文压缩预留）
 MSG_DISPLAY_FIELD = "_display"  # 消息级控制：False = 历史回显不显示
+MSG_IMAGES_FIELD = "_images"    # 消息级附件：user 消息携带的图片 [{"path", "media_type"}]
+
+# ===== 多模态视觉 =====
+MODEL_CAPABILITY_VISION = "vision"  # models.json capabilities 列表中的视觉能力标识
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 # ===== 对话恢复：文件工具集 =====
 FILE_AUTOCOMPLETE_TOOLS = {"create_file", "write_file", "read_file", "modify_file", "delete_file"}
@@ -156,6 +161,8 @@ DEFAULT_MODELS = [
         "context_window": 1000000,
         "max_output_tokens": 393216,
         "api_key_env": DEFAULT_API_KEY_ENV,
+        "capabilities": ["vision"],
+        "vision_transport": "file",
         "deprecated": False,
         "builtin": True,
     },
@@ -166,6 +173,8 @@ DEFAULT_MODELS = [
         "context_window": 1000000,
         "max_output_tokens": 393216,
         "api_key_env": DEFAULT_API_KEY_ENV,
+        "capabilities": ["vision"],
+        "vision_transport": "file",
         "deprecated": False,
         "builtin": True,
     },

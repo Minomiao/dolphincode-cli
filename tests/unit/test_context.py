@@ -154,6 +154,79 @@ class TestSendFilter(unittest.TestCase):
         self.assertEqual(messages[1]["content"], "问题")
 
 
+class _FakePartsBuilder:
+    """记录调用并返回固定图片块的构建器。"""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, images):
+        self.calls.append(list(images))
+        return [{"type": "image_url", "image_url": {"url": f"https://x/{len(self.calls)}.png"}}]
+
+
+class TestImageParts(unittest.TestCase):
+    """验证 _images 消息的 parts 转换与降级。"""
+
+    IMAGES = [{"path": "/tmp/a.png", "media_type": "image/png"}]
+
+    def setUp(self):
+        self.builder = _FakePartsBuilder()
+        self.cm = ContextManager(lambda: "系统提示")
+        self.cm.image_parts_builder = self.builder
+
+    def test_vision_model_converts_to_parts(self):
+        self.cm.vision_enabled = True
+        messages = [{"role": "user", "content": "看图", "_images": self.IMAGES}]
+        result = self.cm.prepare_messages(messages)
+        content = result[1]["content"]
+        self.assertIsInstance(content, list)
+        self.assertEqual(content[0], {"type": "text", "text": "看图"})
+        self.assertEqual(content[1]["type"], "image_url")
+        self.assertEqual(self.builder.calls, [self.IMAGES])
+
+    def test_non_vision_model_degrades_to_text(self):
+        self.cm.vision_enabled = False
+        messages = [{"role": "user", "content": "看图", "_images": self.IMAGES}]
+        result = self.cm.prepare_messages(messages)
+        self.assertEqual(result[1]["content"], "看图")
+        self.assertEqual(self.builder.calls, [])
+
+    def test_no_builder_keeps_message_untouched(self):
+        cm = ContextManager(lambda: "系统提示")
+        messages = [{"role": "user", "content": "看图", "_images": self.IMAGES}]
+        result = cm.prepare_messages(messages)
+        self.assertEqual(result[1]["content"], "看图")
+
+    def test_images_merged_with_context(self):
+        self.cm.vision_enabled = True
+        messages = [{"role": "user", "content": "看图", "_images": self.IMAGES,
+                     "_context": "工作目录: /tmp"}]
+        result = self.cm.prepare_messages(messages)
+        content = result[1]["content"]
+        self.assertEqual(content[0]["text"], "看图\n\n工作目录: /tmp")
+        self.assertEqual(len(content), 2)
+
+    def test_dynamic_context_appended_to_parts_content(self):
+        cm = ContextManager(lambda: "系统提示", lambda: "ctx")
+        cm.image_parts_builder = self.builder
+        cm.vision_enabled = True
+        messages = [{"role": "user", "content": "看图", "_images": self.IMAGES}]
+        result = cm.prepare_messages(messages)
+        content = result[1]["content"]
+        self.assertTrue(content[0]["text"].endswith("\n\nctx"))
+        # 写回 _context 不污染原消息 content
+        self.assertEqual(messages[0]["content"], "看图")
+        self.assertEqual(messages[0]["_context"], "ctx")
+
+    def test_source_message_not_mutated(self):
+        self.cm.vision_enabled = True
+        messages = [{"role": "user", "content": "看图", "_images": self.IMAGES}]
+        self.cm.prepare_messages(messages)
+        self.assertEqual(messages[0]["content"], "看图")
+        self.assertEqual(messages[0]["_images"], self.IMAGES)
+
+
 class TestUpdateUsage(unittest.TestCase):
     """验证 update_usage_from_api 的 token 统计。"""
 

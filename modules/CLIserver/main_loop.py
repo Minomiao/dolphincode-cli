@@ -7,6 +7,7 @@ from colorama import Fore, Style
 from modules.core import GenerationCancelled
 from modules.logger import get_logger
 from modules.core.services import config_service
+from modules.chater import vision
 from . import i18n
 from .state import ui, state
 from .callback import chat_callback, clear_tool_pending, rollback_last_message
@@ -247,8 +248,13 @@ async def main():
 
                 ui.generating = True
                 try:
+                    # 解析 @ 图片引用；非视觉模型去图发送并警告
+                    send_text, images = vision.extract_images(user_input)
+                    if images and not vision.is_vision_capable(state.current_config.get('model', '')):
+                        print(f"{Fore.YELLOW}{i18n.t('main.image_stripped', count=len(images))}{Style.RESET_ALL}")
+                        images = None
                     try:
-                        await state.chat_instance.chat_stream(user_input)
+                        await state.chat_instance.chat_stream(send_text, images=images)
                         handle_post_chat_changes()
                     except GenerationCancelled:
                         # 真中断：保留已完成消息，仅补全未闭环结构，无提示

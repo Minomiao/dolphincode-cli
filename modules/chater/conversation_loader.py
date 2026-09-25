@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from modules.chater import conversation
 from modules.chater import dpc_manager
@@ -99,8 +100,19 @@ def format_conversation_history(messages, show_thinking):
         if role == 'system':
             continue
         elif role == 'user':
+            # 合成图片附件轮（read_image 注入）：渲染为灰色标签而非用户发言
+            user_uo = msg.get('user_output')
+            if user_uo:
+                lines.append(format_user_output_line(user_uo))
+                continue
             lines.append("")
             lines.append(f"{Fore.WHITE}>{Style.RESET_ALL} {content}")
+            # @ 附图的图片标签
+            for img in msg.get(constants.MSG_IMAGES_FIELD) or []:
+                name = os.path.basename(img.get('path', ''))
+                lines.append(format_user_output_line(
+                    {"label": "Image", "parts": [{"text": name, "style": "gray"}]}
+                ))
         elif role == 'assistant':
             has_reasoning = bool(msg.get('reasoning_content'))
             if has_reasoning:

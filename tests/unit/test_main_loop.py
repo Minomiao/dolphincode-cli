@@ -128,7 +128,7 @@ class TestInterruptHandling(unittest.IsolatedAsyncioTestCase):
         """生成中 GenerationCancelled → 封口保留消息、清 spinner、无提示继续。"""
         from modules.core import GenerationCancelled
 
-        async def fake_chat_stream(_input):
+        async def fake_chat_stream(_input, images=None):
             raise GenerationCancelled()
 
         with patch("builtins.input", side_effect=["hello", EOFError]), \
@@ -151,7 +151,7 @@ class TestInterruptHandling(unittest.IsolatedAsyncioTestCase):
         """行中中断：补换行收尾，使新提示符前形成一整行空行。"""
         from modules.core import GenerationCancelled
 
-        async def fake_chat_stream(_input):
+        async def fake_chat_stream(_input, images=None):
             raise GenerationCancelled()
 
         ui.at_line_start = False
@@ -172,7 +172,7 @@ class TestInterruptHandling(unittest.IsolatedAsyncioTestCase):
         class FakeAPIError(Exception):
             pass
 
-        async def fake_chat_stream(_input):
+        async def fake_chat_stream(_input, images=None):
             raise FakeAPIError("boom")
 
         with patch("builtins.input", side_effect=["hello", EOFError]), \

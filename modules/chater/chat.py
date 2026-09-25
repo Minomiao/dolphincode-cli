@@ -6,6 +6,7 @@ import time
 from openai import OpenAI
 from modules.main_server import config
 from modules.chater import conversation
+from modules.chater import vision
 from modules.chater.context import ContextManager
 from modules.loader import mcp_manager
 from modules.loader import skill_manager
@@ -112,6 +113,9 @@ class DolphinChat:
         self.effort_level = "fine"  # fine / normal / high
         self.messages = []
         self.context = ContextManager(self.get_system_prompt, self.get_context_prompt)
+        # 多模态：发送边界转换器与视觉能力由 chat 层注入
+        self.context.image_parts_builder = self._build_image_parts
+        self.context.vision_enabled = vision.is_vision_capable(self.model)
         self.enable_tools = enable_tools
         self.callback = callback or (lambda *args, **kwargs: None)
         self.client = OpenAI(
@@ -165,7 +169,7 @@ class DolphinChat:
         log.info(f"初始化 DolphinChat: model={model}, temperature={temperature}, max_tokens={max_tokens}, enable_tools={enable_tools}")
     
     def add_message(self, role, content, tool_calls=None, reasoning_content=None,
-                    display=True, send=True):
+                    display=True, send=True, images=None, user_output=None):
         """添加一条消息并立即落盘。
 
         Args:
@@ -175,12 +179,18 @@ class DolphinChat:
             reasoning_content: 思考过程（可选）
             display: False 时写入 _display，历史回显不显示
             send: False 时写入 _send，不再发送给 API（上下文压缩预留）
+            images: 图片附件列表 [{"path", "media_type"}]，写入 _images（user 消息）
+            user_output: UI 展示用的结构化标签 {"label", "parts"}（可选）
         """
         message = {"role": role, "content": content}
         if tool_calls:
             message["tool_calls"] = tool_calls
         if reasoning_content:
             message["reasoning_content"] = reasoning_content
+        if images:
+            message[constants.MSG_IMAGES_FIELD] = images
+        if user_output is not None:
+            message["user_output"] = user_output
         if not display:
             message[constants.MSG_DISPLAY_FIELD] = False
         if not send:
@@ -444,6 +454,22 @@ class DolphinChat:
             # 添加标准技能工具
             std_tools = self.std_loader.get_all_tools()
             self.tools.extend(std_tools)
+
+            # 原生 read_image 工具：模型主动查看图片（漏识别 @ 引用时的兜底）
+            self.tools.append({
+                "type": "function",
+                "function": {
+                    "name": "read_image",
+                    "description": "读取并查看图片文件。当用户要求查看、分析某张图片但消息中未附带图片时调用。",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string", "description": "图片文件的路径"}
+                        },
+                        "required": ["path"]
+                    }
+                }
+            })
         log.debug(f"更新工具列表: 共 {len(self.tools)} 个工具")
     
     def reset_work_directory(self):
@@ -520,6 +546,19 @@ class DolphinChat:
             log.error(f"回调函数执行失败: {e}")
             return None
     
+    def _build_image_parts(self, images: list) -> list:
+        """把内部图片列表转换为 API content parts（注入 ContextManager 的构建器）。"""
+        return vision.build_image_parts(images, self.client, self.model)
+
+    def _handle_read_image(self, arguments: dict) -> dict:
+        """read_image 原生工具：校验图片文件，成功时由 _run_tool_calls 注入合成消息。"""
+        if not self.context.vision_enabled:
+            return {
+                "error": "当前模型不支持视觉，无法查看图片",
+                "suggestion": "请提示用户切换到支持视觉的模型后重试",
+            }
+        return vision.read_image_file((arguments or {}).get("path", ""))
+
     async def _execute_tool(self, tool_name: str, arguments: dict) -> tuple:
         """执行工具，返回 (result_str, had_user_output, user_output)。"""
         log.info(f"执行工具: {tool_name}, 参数: {arguments}")
@@ -527,12 +566,17 @@ class DolphinChat:
         had_user_output = False
         user_output = None
         try:
-            for check, handler in self._tool_dispatch:
-                if check(tool_name):
-                    result = await handler(tool_name, arguments)
-                    break
+            if tool_name == "read_image":
+                result = self._handle_read_image(arguments)
             else:
-                result = {"error": f"未知的工具: {tool_name}"}
+                result = None
+            if result is None:
+                for check, handler in self._tool_dispatch:
+                    if check(tool_name):
+                        result = await handler(tool_name, arguments)
+                        break
+                else:
+                    result = {"error": f"未知的工具: {tool_name}"}
 
             # 使用请求管理器处理申请
             if self.request_manager and isinstance(result, dict):
@@ -676,6 +720,7 @@ class DolphinChat:
         tool_responses = []
         displayed_calls = []
         displayed_results = []
+        pending_images = []  # read_image 成功后待注入的图片列表
 
         for tc in tool_calls:
             # 工具间检查点：用户中断后不再启动后续工具
@@ -728,6 +773,18 @@ class DolphinChat:
                 entry["user_output"] = final_uo
             tool_responses.append(entry)
 
+            # read_image 成功：记录待注入的图片，工具结果落盘后追加合成 user 消息
+            if tool_name == "read_image":
+                try:
+                    payload = json.loads(result)
+                except (json.JSONDecodeError, TypeError):
+                    payload = {}
+                if payload.get("success"):
+                    pending_images.append({
+                        "path": payload["path"],
+                        "media_type": payload.get("media_type") or "image/png",
+                    })
+
             if skip:
                 continue
 
@@ -738,6 +795,16 @@ class DolphinChat:
         self.messages.extend(tool_responses)
         # 先储存：整批工具结果落盘后再显示
         self._save_now()
+
+        # 合成注入：每张成功加载的图片跟一条带灰色标签的合成 user 消息，
+        # 下一轮 API 请求中由 prepare_messages 转为 content parts
+        for img in pending_images:
+            self.add_message(
+                "user",
+                "（系统注入的图片附件）",
+                images=[img],
+                user_output={"label": "Image", "parts": [{"text": os.path.basename(img["path"]), "style": "gray"}]},
+            )
 
         if displayed_calls:
             await self._call_callback(events.EVENT_TOOL_CALLS, {
@@ -768,7 +835,7 @@ class DolphinChat:
         kwargs.setdefault("extra_body", {})
         kwargs["extra_body"]["thinking"] = {"type": "enabled"}
 
-    async def chat(self, user_input, max_tool_rounds: int = 10):
+    async def chat(self, user_input, max_tool_rounds: int = 10, images=None):
         """发起一次非流式对话，返回最终回复文本。
 
         模型请求工具时持续执行工具回合，直到模型给出最终回复或达到 max_tool_rounds 上限。
@@ -776,6 +843,7 @@ class DolphinChat:
         Args:
             user_input: 用户输入
             max_tool_rounds: 工具回合数上限（避免无限循环）
+            images: 图片附件列表 [{"path", "media_type"}]（可选）
 
         Returns:
             AI 最终回复文本
@@ -785,9 +853,12 @@ class DolphinChat:
         self._cancel_requested = False
         chat_start = time.perf_counter()
 
+        # 视觉能力跟随当前模型（模型可能在运行期被切换）
+        self.context.vision_enabled = vision.is_vision_capable(self.model)
+
         # 先处理上一轮异常中断遗留的流式缓冲，再开始新一轮
         self._merge_stale_stream_buffer()
-        self.add_message("user", user_input)
+        self.add_message("user", user_input, images=images)
         
         kwargs = {
             "model": self.model,
@@ -954,7 +1025,7 @@ class DolphinChat:
 
         return full_response, full_reasoning, tool_calls_buffer, has_tool_calls, last_usage
 
-    async def chat_stream(self, user_input):
+    async def chat_stream(self, user_input, images=None):
         log.info(f"开始聊天 (流式): 输入长度={len(user_input)}")
         chat_start = time.perf_counter()
 
@@ -964,9 +1035,12 @@ class DolphinChat:
         # 热加载：每轮重组工具列表，使运行期安装的标准技能下一轮即可用
         self._update_tools()
 
+        # 视觉能力跟随当前模型（模型可能在运行期被切换）
+        self.context.vision_enabled = vision.is_vision_capable(self.model)
+
         # 先处理上一轮异常中断遗留的流式缓冲，再开始新一轮
         self._merge_stale_stream_buffer()
-        self.add_message("user", user_input)
+        self.add_message("user", user_input, images=images)
         
         kwargs = {
             "model": self.model,

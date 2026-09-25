@@ -195,15 +195,16 @@ class TestBuildResult(unittest.TestCase):
         self.assertEqual(result["rounds"], 2)
 
     def test_internal_fields_stripped(self):
-        """返回历史应剥离全部内部字段（_context / _send / _display）。"""
+        """返回历史应剥离全部内部字段（_context / _send / _display / _images）。"""
         messages = make_messages()
         messages[0]["_send"] = False
         messages[-1]["_display"] = False
+        messages[0]["_images"] = [{"path": "/tmp/a.png", "media_type": "image/png"}]
         chat = FakeChat(messages)
         result = ai_caller._build_result(chat, "ok")
         self.assertEqual(len(result["messages"]), 4)
         for msg in result["messages"]:
-            for field in ("_context", "_send", "_display"):
+            for field in ("_context", "_send", "_display", "_images"):
                 self.assertNotIn(field, msg)
 
     def test_empty_history(self):

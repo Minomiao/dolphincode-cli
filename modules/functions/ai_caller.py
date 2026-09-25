@@ -56,7 +56,12 @@ def _tool_allowed(tool: dict, allowed: list, ids: Dict[str, set]) -> bool:
 
 
 # 消息内部字段：返回给调用方前统一剥离
-_INTERNAL_MSG_FIELDS = {"_context", constants.MSG_SEND_FIELD, constants.MSG_DISPLAY_FIELD}
+_INTERNAL_MSG_FIELDS = {
+    "_context",
+    constants.MSG_SEND_FIELD,
+    constants.MSG_DISPLAY_FIELD,
+    constants.MSG_IMAGES_FIELD,
+}
 
 
 def _build_result(chat, final_content: str) -> dict:
