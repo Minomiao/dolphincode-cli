@@ -4,7 +4,7 @@
 """
 
 # ===== 默认模型 =====
-DEFAULT_MODEL = "deepseek-v4-flash"
+DEFAULT_MODEL = "deepseek-flash"
 # 内置模型的服务地址，自定义模型在 models.json 中各自声明
 DEFAULT_BASE_URL = "https://api.deepseek.com"
 # 内置（默认）模型共用的密钥变量名；自定义模型各自派生独立的变量名
@@ -152,11 +152,15 @@ RECOVERY_READ_LIMIT_LINES = 200    # 读取工具恢复时最大返回行数
 # ===== 模型注册表 =====
 # 仅作为首次运行写入 models.json 的种子定义；之后以 models.json 为准（已存在的条目不覆盖）。
 # 密钥本身存放在 .env，条目通过 api_key_env 指向对应的变量名。
-# max_output_tokens 依据 DeepSeek 官方文档（输出长度最大 384K）
+# 模型阵容与窗口大小依据 DeepSeek 官方定价文档：
+# https://api-docs.deepseek.com/zh-cn/quick_start/pricing
+# （deepseek-chat / deepseek-reasoner 已于 2026-07-24 弃用；旧模型名
+#   deepseek-v4-flash / deepseek-v4-flash-vision-exp 仍可调用，但对应模型已下线，
+#   请求由 DeepSeek-V4.1-Flash 提供服务并按 Flash 价格计费，不再收录）
 DEFAULT_MODELS = [
     {
-        "name": "deepseek-v4-flash",
-        "description": "DeepSeek V4 Flash",
+        "name": "deepseek-flash",
+        "description": "DeepSeek V4.1 Flash (标准款)",
         "base_url": DEFAULT_BASE_URL,
         "context_window": 1000000,
         "max_output_tokens": 393216,
@@ -168,7 +172,7 @@ DEFAULT_MODELS = [
     },
     {
         "name": "deepseek-v4-pro",
-        "description": "DeepSeek V4 Pro",
+        "description": "DeepSeek V4 Pro (旗舰款)",
         "base_url": DEFAULT_BASE_URL,
         "context_window": 1000000,
         "max_output_tokens": 393216,

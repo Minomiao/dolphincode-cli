@@ -178,6 +178,16 @@ def _context_window_validator(text):
     return True, "", str(number)
 
 
+def _vision_validator(text):
+    """多模态开关校验：留空表示否，接受 y/yes/n/no（不区分大小写）。"""
+    value = text.strip().lower()
+    if value in ("", "n", "no"):
+        return True, "", "n"
+    if value in ("y", "yes"):
+        return True, "", "y"
+    return False, i18n.t("model.invalid_vision"), text
+
+
 def _custom_model_fields():
     """构造添加模型表单的字段定义（二级表单页用）。"""
     return [
@@ -199,6 +209,9 @@ def _custom_model_fields():
         {"key": "context_window", "label": i18n.t("model.field_context"),
          "prompt": i18n.t("model.input_context"), "value": "",
          "validate": _context_window_validator},
+        {"key": "vision", "label": i18n.t("model.field_vision"),
+         "prompt": i18n.t("model.input_vision"), "value": "",
+         "validate": _vision_validator},
     ]
 
 
@@ -214,8 +227,10 @@ def _add_custom_model_flow():
 
     name = values["name"]
     context_window = int(values["context_window"]) if values["context_window"] else DEFAULT_CONTEXT_WINDOW
+    vision = values.get("vision") == "y"
     success, error = add_custom_model(name, values["description"] or name,
-                                      values["base_url"], values["api_key"], context_window)
+                                      values["base_url"], values["api_key"], context_window,
+                                      vision=vision)
     if success:
         _console.print(f"[green]{i18n.t('model.added', name=name)}[/green]")
     else:
@@ -289,6 +304,10 @@ def _edit_custom_model_flow(model_info):
          "prompt": i18n.t("model.input_context"),
          "value": str(model_info.get("context_window", "")),
          "validate": _context_window_validator},
+        {"key": "vision", "label": i18n.t("model.field_vision"),
+         "prompt": i18n.t("model.input_vision"),
+         "value": "y" if constants.MODEL_CAPABILITY_VISION in model_info.get("capabilities", []) else "n",
+         "validate": _vision_validator},
         {"key": "api_key", "label": i18n.t("model.field_api_key"),
          "prompt": i18n.t("model.api_key_prompt", name=name),
          "value": current_key,
@@ -309,6 +328,7 @@ def _edit_custom_model_flow(model_info):
         "base_url": values["base_url"],
         "context_window": int(values["context_window"]) if values.get("context_window") else None,
         "api_key": values.get("api_key", "").strip(),
+        "vision": values.get("vision") == "y",
     }), name)
 
 

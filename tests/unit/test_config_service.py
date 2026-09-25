@@ -54,7 +54,7 @@ class FakeConfigModule:
         self.saved = []
         self.remove_results = []  # [(success, error)] 队列
         self.api_key_writes = []  # [(model_name, api_key)]
-        self.model_updates = []  # [{name, description, base_url, context_window, api_key}]
+        self.model_updates = []  # [{name, description, base_url, context_window, api_key, vision}]
         self.update_result = None  # 非 None 时作为 update_custom_model 的返回值
 
     def save_config(self, config):
@@ -70,10 +70,10 @@ class FakeConfigModule:
         return True, ""
 
     def update_custom_model(self, name, description=None, base_url=None,
-                            context_window=None, api_key=None):
+                            context_window=None, api_key=None, vision=None):
         self.model_updates.append({
             "name": name, "description": description, "base_url": base_url,
-            "context_window": context_window, "api_key": api_key,
+            "context_window": context_window, "api_key": api_key, "vision": vision,
         })
         if self.update_result is not None:
             return self.update_result
@@ -315,7 +315,7 @@ class TestUpdateModel(unittest.TestCase):
         self.assertEqual(self.ctx.config_module.model_updates, [{
             "name": "my-model", "description": "desc",
             "base_url": "https://x.example.com/v1",
-            "context_window": 64000, "api_key": "sk-x"}])
+            "context_window": 64000, "api_key": "sk-x", "vision": None}])
 
     def test_fields_on_current_custom_model_rebuilds(self):
         self.ctx.current_config["model"] = "my-model"
@@ -325,6 +325,18 @@ class TestUpdateModel(unittest.TestCase):
         # 凭据按模型重新解析后写回内存
         self.assertEqual(self.ctx.current_config["base_url"], "https://example.com/v1")
         self.assertEqual(len(self.ctx.chat_module.instances), 2)
+
+    def test_vision_toggle_passed_through(self):
+        self.ctx.current_config["model"] = "other-model"
+        result = config_service.update_model(self.ctx, "my-model", {"vision": True})
+        self.assertTrue(result["success"])
+        self.assertEqual(self.ctx.config_module.model_updates[0]["vision"], True)
+
+    def test_vision_off_passed_through(self):
+        self.ctx.current_config["model"] = "other-model"
+        result = config_service.update_model(self.ctx, "my-model", {"vision": False})
+        self.assertTrue(result["success"])
+        self.assertEqual(self.ctx.config_module.model_updates[0]["vision"], False)
 
     def test_failure_returns_error(self):
         self.ctx.config_module.update_result = (False, "保存模型配置失败")

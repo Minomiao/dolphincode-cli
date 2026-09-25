@@ -74,14 +74,14 @@ class FakeChat:
     def __init__(self, messages, context=None):
         self.messages = messages
         self.context = context or ContextManager(lambda: "系统提示", None)
-        self.model = "deepseek-v4-flash"
+        self.model = "deepseek-flash"
 
 
 class FakeDolphinChat:
     """替换真实 DolphinChat：不触网，chat() 注入模拟消息历史并返回固定文本。"""
 
     def __init__(self, model=None, temperature=0.7, max_tokens=None, enable_tools=True, callback=None):
-        self.model = model or "deepseek-v4-flash"
+        self.model = model or "deepseek-flash"
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.enable_tools = enable_tools

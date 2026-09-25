@@ -155,8 +155,8 @@ def update_model(ctx, model_name, values):
 
     Args:
         model_name: 目标模型名
-        values: {字段名: 新值}，可含 description / base_url / context_window / api_key；
-            仅传 api_key 时走按模型写密钥的分支
+        values: {字段名: 新值}，可含 description / base_url / context_window /
+            api_key / vision；仅传 api_key 时走按模型写密钥的分支
 
     Returns:
         {success, rebuilt} 或 {success: False, error}
@@ -169,7 +169,8 @@ def update_model(ctx, model_name, values):
         description=values.get("description"),
         base_url=values.get("base_url"),
         context_window=values.get("context_window"),
-        api_key=values.get("api_key"))
+        api_key=values.get("api_key"),
+        vision=values.get("vision"))
     if not success:
         return {"success": False, "error": error}
 

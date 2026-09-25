@@ -91,7 +91,7 @@ class TestCapability(unittest.TestCase):
     def test_vision_capable(self):
         with mock.patch.object(vision, "_get_model_meta",
                                return_value={"capabilities": ["vision"]}):
-            self.assertTrue(vision.is_vision_capable("deepseek-v4-flash"))
+            self.assertTrue(vision.is_vision_capable("deepseek-flash"))
 
     def test_not_vision_capable(self):
         with mock.patch.object(vision, "_get_model_meta",

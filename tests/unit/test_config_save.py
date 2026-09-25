@@ -86,10 +86,10 @@ class TestSaveConfigApiKeyOverride(unittest.TestCase):
         models_data = json.loads(self.models_file.read_text(encoding="utf-8"))
         self.assertEqual(models_data["current"], "deepseek-v4-pro")
         names = [m["name"] for m in models_data["models"]]
-        self.assertIn("deepseek-v4-flash", names)
+        self.assertIn("deepseek-flash", names)
         self.assertIn("deepseek-v4-pro", names)
         # 服务地址随模型条目存放，内置模型自带默认地址
-        flash = next(m for m in models_data["models"] if m["name"] == "deepseek-v4-flash")
+        flash = next(m for m in models_data["models"] if m["name"] == "deepseek-flash")
         self.assertEqual(flash["base_url"], "https://api.deepseek.com")
         self.assertTrue(flash.get("builtin"))
 
@@ -97,12 +97,12 @@ class TestSaveConfigApiKeyOverride(unittest.TestCase):
         """内置模型从模型条目的 base_url 与 .env 解析服务地址和密钥。"""
         # 旧结构（顶层 base_url）也会被规整为统一清单
         self.models_file.write_text(
-            json.dumps({"current": "deepseek-v4-flash", "base_url": "https://builtin.example.com"}),
+            json.dumps({"current": "deepseek-flash", "base_url": "https://builtin.example.com"}),
             encoding="utf-8")
         with patch.dict(os.environ, {"QUICKAI_API_KEY": "env-key"}):
             loaded = config.load_config()
 
-        self.assertEqual(loaded["model"], "deepseek-v4-flash")
+        self.assertEqual(loaded["model"], "deepseek-flash")
         self.assertEqual(loaded["base_url"], "https://builtin.example.com")
         self.assertEqual(loaded["api_key"], "env-key")
 
@@ -168,22 +168,22 @@ class TestSaveConfigApiKeyOverride(unittest.TestCase):
             }, ensure_ascii=False),
             encoding="utf-8")
         self.assertEqual(config.get_context_window("my-model"), 64000)
-        self.assertEqual(config.get_context_window("deepseek-v4-flash"), 1000000)
+        self.assertEqual(config.get_context_window("deepseek-flash"), 1000000)
         self.assertEqual(config.get_context_window("unknown-model"), config.DEFAULT_CONTEXT_WINDOW)
 
     def test_user_edit_to_builtin_entry_wins(self):
         """已存在的条目以文件为准，不被内置种子覆盖。"""
         self.models_file.write_text(
             json.dumps({
-                "current": "deepseek-v4-flash",
-                "models": [{"name": "deepseek-v4-flash", "base_url": "https://edited.example.com",
+                "current": "deepseek-flash",
+                "models": [{"name": "deepseek-flash", "base_url": "https://edited.example.com",
                             "context_window": 7777, "builtin": True}],
             }, ensure_ascii=False),
             encoding="utf-8")
         config.init()
 
         models_data = json.loads(self.models_file.read_text(encoding="utf-8"))
-        flash = next(m for m in models_data["models"] if m["name"] == "deepseek-v4-flash")
+        flash = next(m for m in models_data["models"] if m["name"] == "deepseek-flash")
         self.assertEqual(flash["base_url"], "https://edited.example.com")
         self.assertEqual(flash["context_window"], 7777)
         # 缺失的内置模型仍会补入
@@ -191,7 +191,7 @@ class TestSaveConfigApiKeyOverride(unittest.TestCase):
 
     def test_builtin_model_cannot_be_removed(self):
         config.init()
-        success, error = config.remove_custom_model("deepseek-v4-flash")
+        success, error = config.remove_custom_model("deepseek-flash")
         self.assertFalse(success)
         self.assertIn("不可删除", error)
 
@@ -216,7 +216,7 @@ class TestSaveConfigApiKeyOverride(unittest.TestCase):
         names = [m["name"] for m in models_data["models"]]
         self.assertIn("legacy-model", names)
         # 内置种子沿用旧版顶层 base_url
-        flash = next(m for m in models_data["models"] if m["name"] == "deepseek-v4-flash")
+        flash = next(m for m in models_data["models"] if m["name"] == "deepseek-flash")
         self.assertEqual(flash["base_url"], "https://legacy.example.com")
         # 自定义条目里的明文密钥被搬到 .env，条目只留映射变量名
         entry = next(m for m in models_data["models"] if m["name"] == "legacy-model")

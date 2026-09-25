@@ -302,7 +302,8 @@ def _allocated_env_names():
     return names
 
 
-def add_custom_model(name, description, base_url, api_key, context_window=DEFAULT_CONTEXT_WINDOW):
+def add_custom_model(name, description, base_url, api_key,
+                     context_window=DEFAULT_CONTEXT_WINDOW, vision=False):
     """添加一个自定义模型，密钥写入 .env 并记录映射变量名。
 
     Args:
@@ -311,6 +312,7 @@ def add_custom_model(name, description, base_url, api_key, context_window=DEFAUL
         base_url: API 地址
         api_key: API 密钥（存入 .env，不写入 models.json）
         context_window: 上下文窗口大小
+        vision: 是否为多模态（支持图片输入）模型
 
     Returns:
         (True, "") 成功 / (False, 错误信息) 失败
@@ -322,6 +324,7 @@ def add_custom_model(name, description, base_url, api_key, context_window=DEFAUL
     if not _write_env_key(env_name, api_key):
         return False, "写入 .env 失败"
 
+    capabilities = [constants.MODEL_CAPABILITY_VISION] if vision else []
     models = dict(_load_models())
     models["models"] = list(models.get("models", [])) + [{
         "name": name,
@@ -329,11 +332,12 @@ def add_custom_model(name, description, base_url, api_key, context_window=DEFAUL
         "base_url": base_url,
         "context_window": context_window,
         "api_key_env": env_name,
+        "capabilities": capabilities,
         "custom": True,
     }]
     if not _save_models(models):
         return False, "保存模型配置失败"
-    log.info(f"已添加自定义模型: {name}（密钥变量 {env_name}）")
+    log.info(f"已添加自定义模型: {name}（密钥变量 {env_name}，多模态={vision}）")
     return True, ""
 
 
@@ -388,7 +392,7 @@ def set_model_api_key(model_name, api_key):
 
 
 def update_custom_model(model_name, description=None, base_url=None,
-                        context_window=None, api_key=None):
+                        context_window=None, api_key=None, vision=None):
     """更新自定义模型的配置（模型名不可修改）。
 
     api_key 写入该模型映射的 .env 变量，其余字段写入 models.json；
@@ -414,6 +418,12 @@ def update_custom_model(model_name, description=None, base_url=None,
             target["base_url"] = base_url
         if context_window is not None:
             target["context_window"] = context_window
+        if vision is not None:
+            caps = [c for c in target.get("capabilities", [])
+                    if c != constants.MODEL_CAPABILITY_VISION]
+            if vision:
+                caps.append(constants.MODEL_CAPABILITY_VISION)
+            target["capabilities"] = caps
 
         if api_key is not None:
             env_name = target.get("api_key_env") or constants.DEFAULT_API_KEY_ENV
