@@ -134,6 +134,11 @@ ACTION_RUN_POWERSHELL_SCRIPT = "run_powershell_script"
 DPC_FILENAME = ".dpc"
 FILE_ATTRIBUTE_HIDDEN = 0x2
 
+# ===== 消息内部控制字段 =====
+# 缺省（字段不存在）一律视为 True，保证存量数据行为不变。
+MSG_SEND_FIELD = "_send"        # 消息级控制：False = 不发送给 API（上下文压缩预留）
+MSG_DISPLAY_FIELD = "_display"  # 消息级控制：False = 历史回显不显示
+
 # ===== 对话恢复：文件工具集 =====
 FILE_AUTOCOMPLETE_TOOLS = {"create_file", "write_file", "read_file", "modify_file", "delete_file"}
 RECOVERY_WRITE_PREVIEW_LINES = 100  # 写入工具恢复时预览行数

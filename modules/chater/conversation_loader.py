@@ -2,6 +2,7 @@ import json
 import time
 from modules.chater import conversation
 from modules.chater import dpc_manager
+from modules.bootstrap import constants
 from modules.logger import get_logger
 from colorama import Fore, Style
 
@@ -91,6 +92,8 @@ def format_conversation_history(messages, show_thinking):
 
     lines = []
     for msg in messages:
+        if msg.get(constants.MSG_DISPLAY_FIELD) is False:
+            continue
         role = msg.get('role', '')
         content = msg.get('content', '')
         if role == 'system':

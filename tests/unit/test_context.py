@@ -89,6 +89,71 @@ class TestPrepareMessages(unittest.TestCase):
         self.assertEqual(result[1]["content"], "你好")
 
 
+class TestSendFilter(unittest.TestCase):
+    """验证 _send=False 消息的发送过滤与工具调用配对完整性。"""
+
+    def setUp(self):
+        self.cm = ContextManager(lambda: "系统提示")
+
+    def test_user_message_skipped(self):
+        messages = [
+            {"role": "user", "content": "旧问题", "_send": False},
+            {"role": "user", "content": "新问题"},
+        ]
+        result = self.cm.prepare_messages(messages)
+        contents = [m.get("content") for m in result[1:]]
+        self.assertEqual(contents, ["新问题"])
+
+    def test_assistant_tool_pair_skipped_together(self):
+        messages = [
+            {"role": "user", "content": "问题"},
+            {"role": "assistant", "content": "", "_send": False, "tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "t", "arguments": "{}"}},
+            ]},
+            {"role": "tool", "tool_call_id": "call_1", "content": "结果"},
+            {"role": "assistant", "content": "回答"},
+        ]
+        result = self.cm.prepare_messages(messages)
+        roles = [m["role"] for m in result[1:]]
+        self.assertEqual(roles, ["user", "assistant"])
+
+    def test_tool_skipped_drops_assistant(self):
+        messages = [
+            {"role": "user", "content": "问题"},
+            {"role": "assistant", "content": "", "tool_calls": [
+                {"id": "call_1", "type": "function",
+                 "function": {"name": "t", "arguments": "{}"}},
+            ]},
+            {"role": "tool", "tool_call_id": "call_1", "content": "结果", "_send": False},
+            {"role": "assistant", "content": "回答"},
+        ]
+        result = self.cm.prepare_messages(messages)
+        roles = [m["role"] for m in result[1:]]
+        self.assertEqual(roles, ["user", "assistant"])
+        self.assertEqual(result[-1]["content"], "回答")
+
+    def test_context_written_back_to_correct_original_message(self):
+        cm = ContextManager(lambda: "系统提示", lambda: "努力程度: fine")
+        messages = [
+            {"role": "user", "content": "被跳过", "_send": False},
+            {"role": "user", "content": "保留"},
+        ]
+        cm.prepare_messages(messages)
+        self.assertNotIn("_context", messages[0])
+        self.assertEqual(messages[1]["_context"], "努力程度: fine")
+
+    def test_context_write_back_with_system_first(self):
+        cm = ContextManager(lambda: "系统提示", lambda: "ctx")
+        messages = [
+            {"role": "system", "content": "已有系统"},
+            {"role": "user", "content": "问题"},
+        ]
+        cm.prepare_messages(messages)
+        self.assertEqual(messages[1]["_context"], "ctx")
+        self.assertEqual(messages[1]["content"], "问题")
+
+
 class TestUpdateUsage(unittest.TestCase):
     """验证 update_usage_from_api 的 token 统计。"""
 

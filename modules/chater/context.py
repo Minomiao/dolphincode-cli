@@ -20,6 +20,53 @@ _HIGH_THRESHOLD = constants.HIGH_THRESHOLD
 _CRITICAL_THRESHOLD = constants.CRITICAL_THRESHOLD
 
 
+def _filter_sendable(source: list) -> list:
+    """过滤 _send=False 的消息，保持工具调用与回复成对完整。
+
+    规则：
+    - _send=False 的消息跳过；
+    - assistant(tool_calls) 被跳过时，其紧随的 tool 回复连带跳过；
+    - 保留的 assistant(tool_calls) 若任一 tool_call 缺少被保留的 tool 回复，
+      该 assistant 及其全部 tool 回复连带跳过（API 要求每个 tool_call 都有回复）。
+
+    返回 [(原始索引, 消息), ...]。
+    """
+    n = len(source)
+    dropped = [False] * n
+
+    # 第一遍：标记直接跳过的消息；被跳过的 assistant 连带其紧随 tool 回复
+    i = 0
+    while i < n:
+        if source[i].get(constants.MSG_SEND_FIELD) is False:
+            dropped[i] = True
+            if source[i].get("role") == "assistant" and source[i].get("tool_calls"):
+                j = i + 1
+                while j < n and source[j].get("role") == "tool":
+                    dropped[j] = True
+                    j += 1
+                i = j
+                continue
+        i += 1
+
+    # 第二遍：保留的 assistant 若 tool 回复不完整，则与其全部 tool 回复连带跳过
+    for i in range(n):
+        if dropped[i] or source[i].get("role") != "assistant" or not source[i].get("tool_calls"):
+            continue
+        j = i + 1
+        response_ids = set()
+        while j < n and source[j].get("role") == "tool":
+            if not dropped[j]:
+                response_ids.add(source[j].get("tool_call_id"))
+            j += 1
+        expected = {tc.get("id") for tc in source[i]["tool_calls"]}
+        if not expected.issubset(response_ids):
+            dropped[i] = True
+            for k in range(i + 1, j):
+                dropped[k] = True
+
+    return [(idx, msg) for idx, msg in enumerate(source) if not dropped[idx]]
+
+
 
 class ContextManager:
     """管理发送给 API 的上下文消息列表。"""
@@ -42,6 +89,7 @@ class ContextManager:
         动态上下文（工作目录、目录结构、努力程度）通过独立 _context 字段存储，
         发送时从 content + _context 拼接，写回时只写 _context 不污染 content。
         末尾 user message 额外追加本轮 context。
+        _send=False 的消息不进入发送列表（工具调用与回复保持成对）。
         保持前缀稳定以提高 DeepSeek 缓存命中率。
 
         Args:
@@ -52,13 +100,18 @@ class ContextManager:
 
         # 确保 system 在最前面且不重复
         if messages and messages[0].get("role") == "system":
+            base = 1
             source = messages[1:]
         else:
+            base = 0
             source = messages
+
+        # 过滤不发送消息，保留原始索引以便 _context 写回定位
+        sendable = _filter_sendable(source)
 
         # 构建发送用列表：对有 _context 的 user 消息还原完整 content
         result = [system_message]
-        for msg in source:
+        for _, msg in sendable:
             if msg.get("role") == "user" and msg.get("_context"):
                 msg = dict(msg)
                 msg["content"] = msg["content"] + "\n\n" + msg.pop("_context")
@@ -69,17 +122,14 @@ class ContextManager:
         if self._get_context_prompt:
             context = self._get_context_prompt()
             if context:
-                for i in range(len(result) - 1, -1, -1):
-                    if result[i].get("role") == "user":
-                        result[i] = dict(result[i])
-                        result[i]["content"] = result[i]["content"] + "\n\n" + context
-                        # 写回 _context，content 保持不变
-                        msg_idx = i - 1  # result[0] 是 system_message，result[1:] 对应 source(=messages[1:] or messages)
-                        if (messages and messages[0].get("role") == "system"):
-                            msg_idx = i  # result[i] 直接对应 messages[i]
-                        if 0 <= msg_idx < len(messages):
-                            messages[msg_idx] = dict(messages[msg_idx])
-                            messages[msg_idx]["_context"] = context
+                for k in range(len(result) - 1, 0, -1):
+                    if result[k].get("role") == "user":
+                        result[k] = dict(result[k])
+                        result[k]["content"] = result[k]["content"] + "\n\n" + context
+                        # 写回 _context，content 保持不变（result[k] 对应 sendable[k-1]）
+                        orig_idx = base + sendable[k - 1][0]
+                        messages[orig_idx] = dict(messages[orig_idx])
+                        messages[orig_idx]["_context"] = context
                         break
                 else:
                     result.append({"role": "user", "content": context})

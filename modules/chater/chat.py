@@ -164,12 +164,27 @@ class DolphinChat:
 
         log.info(f"初始化 DolphinChat: model={model}, temperature={temperature}, max_tokens={max_tokens}, enable_tools={enable_tools}")
     
-    def add_message(self, role, content, tool_calls=None, reasoning_content=None):
+    def add_message(self, role, content, tool_calls=None, reasoning_content=None,
+                    display=True, send=True):
+        """添加一条消息并立即落盘。
+
+        Args:
+            role: 消息角色（user / assistant / tool）
+            content: 消息内容
+            tool_calls: assistant 工具调用列表（可选）
+            reasoning_content: 思考过程（可选）
+            display: False 时写入 _display，历史回显不显示
+            send: False 时写入 _send，不再发送给 API（上下文压缩预留）
+        """
         message = {"role": role, "content": content}
         if tool_calls:
             message["tool_calls"] = tool_calls
         if reasoning_content:
             message["reasoning_content"] = reasoning_content
+        if not display:
+            message[constants.MSG_DISPLAY_FIELD] = False
+        if not send:
+            message[constants.MSG_SEND_FIELD] = False
         self.messages.append(message)
         log.debug(f"添加消息: role={role}, content_length={len(content)}, tool_calls={len(tool_calls) if tool_calls else 0}")
         self._save_now()

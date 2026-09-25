@@ -55,11 +55,15 @@ def _tool_allowed(tool: dict, allowed: list, ids: Dict[str, set]) -> bool:
     return bool(ids.get(name, set()) & set(allowed))
 
 
+# 消息内部字段：返回给调用方前统一剥离
+_INTERNAL_MSG_FIELDS = {"_context", constants.MSG_SEND_FIELD, constants.MSG_DISPLAY_FIELD}
+
+
 def _build_result(chat, final_content: str) -> dict:
     """从对话实例组装完整返回结果，供请求方自行处理。"""
-    # 去掉内部动态上下文字段，返回干净的对话历史
+    # 去掉内部字段，返回干净的对话历史
     messages = [
-        {k: v for k, v in m.items() if k != '_context'}
+        {k: v for k, v in m.items() if k not in _INTERNAL_MSG_FIELDS}
         for m in chat.messages
     ]
 
