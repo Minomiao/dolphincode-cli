@@ -160,7 +160,7 @@ RECOVERY_READ_LIMIT_LINES = 200    # 读取工具恢复时最大返回行数
 DEFAULT_MODELS = [
     {
         "name": "deepseek-flash",
-        "description": "DeepSeek V4.1 Flash (标准款)",
+        "description": "DeepSeek V4.1 Flash",
         "base_url": DEFAULT_BASE_URL,
         "context_window": 1000000,
         "max_output_tokens": 393216,
@@ -172,7 +172,7 @@ DEFAULT_MODELS = [
     },
     {
         "name": "deepseek-v4-pro",
-        "description": "DeepSeek V4 Pro (旗舰款)",
+        "description": "DeepSeek V4 Pro",
         "base_url": DEFAULT_BASE_URL,
         "context_window": 1000000,
         "max_output_tokens": 393216,
