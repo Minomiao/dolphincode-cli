@@ -1,5 +1,53 @@
 # Change Log
 
+## v1.2.3 (2026-09-25)
+
+Unified model registry with a three-level management TUI, multimodal vision support, native tool registration, per-message send/display control, and full i18n coverage.
+
+### Model Registry
+
++ Consolidate model config into `models.json` with API keys mapped to `.env` variables (`5108999`)
+  - Single manifest for builtin and custom models; legacy config.json / custom_models.json migrate automatically
+  - Per-model key variables derived from model names; builtins share the default variable
++ Align builtin lineup with the DeepSeek pricing doc (`9055786`)
+  - `deepseek-flash` / `deepseek-v4-pro` (1M context, 384K output, vision-capable)
+  - Deprecated `deepseek-chat` / `deepseek-reasoner` and the renamed flash entries are no longer seeded
++ Drop tier qualifiers from builtin model descriptions (`05b6d54`)
+
+### Model Management TUI
+
++ Three-level model settings with add / edit / delete actions (`af15f37`)
+  - New `form_nav` field form subsystem shared by add and edit flows
+  - Multimodal (y/N) switch for custom models, persisted as `capabilities` (`9055786`)
+
+### Multimodal Vision
+
++ Add `@"path"` image reference parsing and content parts conversion (`a50800c`)
+  - Message-level `_images` field stores local paths; converted to OpenAI parts only at the API boundary
+  - Platform-isolated file_id cache keyed by (path, mtime) with base64 fallback
++ Add `read_image` tool with synthetic user message injection (`a50800c`)
+  - Tool messages cannot carry images, so successful reads append a synthetic user message converted to parts on the next round
+  - Automatic degradation for non-vision models (input warning, plain-text history, tool error)
++ Register `read_image` as a native tool through the skill manager (`bdf3570`)
+  - New `register_native_tool()` interface shares the `skill_` prefix, lookup table and dispatch chain with directory skills
+  - Tool results with an `images` field generically trigger injection; user_output tags render gray/red labels instead of raw JSON
+
+### Message Internals
+
++ Add per-message `_send` / `_display` control fields (`eebf9ed`)
+  - Send filtering preserves tool pairing integrity; history echo skips hidden messages
+  - Synthetic image messages are stored with `display=False` to avoid duplicate echo
+
+### i18n
+
++ Complete translation key coverage for all 40 languages (`7788042`)
+
+### Testing
+
++ Add form, i18n, context image-parts, vision, key-nav and native-tool tests (`af15f37`, `7788042`, `a50800c`, `bdf3570`)
+
+---
+
 ## v1.2.2 (2026-09-06)
 
 Core services layer decoupling, cooperative generation cancel, load-time tool lookup routing, standard skill packs with hot reload, and a subagent delegation skill.
