@@ -146,5 +146,60 @@ class TestMCPRegistration(unittest.IsolatedAsyncioTestCase):
             mgr.register_server_tools("fs", tool)
 
 
+class TestNativeTool(unittest.TestCase):
+    """原生（内置）工具注册接口。"""
+
+    def test_register_and_lookup_and_call(self):
+        """注册后进入查找表与工具列表，call_tool 走原生分支并透传参数。"""
+        loader = _bare_skill_loader()
+        seen = []
+
+        def handler(value=""):
+            seen.append(value)
+            return {"success": True, "value": value,
+                    "user_output": {"label": "X", "parts": [{"text": "ok"}]}}
+
+        self.assertTrue(loader.register_native_tool(
+            "echo", description="测试工具",
+            parameters={"type": "object", "properties": {}, "required": []},
+            handler=handler))
+        self.assertEqual(loader._tool_lookup["skill_echo"], ("echo", None))
+        self.assertIn("skill_echo", loader.get_tool_names())
+        self.assertIn("skill_echo",
+                      [t["function"]["name"] for t in loader.get_all_tools()])
+
+        result = asyncio.run(loader.call_tool("skill_echo", {"value": "hi"}))
+        self.assertTrue(result["success"])
+        self.assertEqual(seen, ["hi"])
+        # user_output 原样保留，由 chat._execute_tool 的通用提取逻辑处理
+        self.assertIn("user_output", result)
+
+    def test_reregister_overwrites(self):
+        """同名重复注册以最后一次为准（支持 chat 实例重建）。"""
+        loader = _bare_skill_loader()
+        loader.register_native_tool("t", "旧", {}, lambda: "old")
+        loader.register_native_tool("t", "新", {}, lambda: "new")
+        self.assertEqual(loader._tool_lookup["skill_t"], ("t", None))
+        self.assertEqual(loader.get_all_tools()[0]["function"]["description"], "新")
+
+    def test_conflict_with_directory_skill(self):
+        """与目录技能生成的注册名冲突时技能优先，原生注册返回 False。"""
+        loader = _bare_skill_loader()
+        loader.skills = {"echo": _skill("echo", "run", lambda: None)}
+        loader._rebuild_tool_lookup()
+        ok = loader.register_native_tool(
+            "echo_run", description="冲突", parameters={}, handler=lambda: None)
+        self.assertFalse(ok)
+        self.assertEqual(loader._tool_lookup["skill_echo_run"], ("echo", "run"))
+
+    def test_missing_callable_raises(self):
+        """原生条目处理器丢失时报 ValueError 而非静默失败。"""
+        loader = _bare_skill_loader()
+        loader.register_native_tool("t", "d", {}, lambda: None)
+        del loader.native_tools["t"]
+        with self.assertRaises(ValueError):
+            asyncio.run(loader.call_tool("skill_t", {}))
+
+
 if __name__ == "__main__":
     unittest.main()

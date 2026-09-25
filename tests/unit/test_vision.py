@@ -178,10 +178,19 @@ class TestReadImageFile(unittest.TestCase):
         self.assertTrue(result["success"])
         self.assertEqual(result["path"], os.path.realpath(self.img))
         self.assertEqual(result["media_type"], "image/png")
+        # images 字段供 _run_tool_calls 通用注入合成消息
+        self.assertEqual(result["images"],
+                         [{"path": os.path.realpath(self.img), "media_type": "image/png"}])
+        # 工具行灰色标签
+        self.assertEqual(result["user_output"]["label"], "Image")
+        self.assertEqual(result["user_output"]["parts"][0]["style"], "gray")
 
     def test_missing_path_arg(self):
         result = vision.read_image_file("")
         self.assertIn("error", result)
+        # 失败同样带 user_output（红色标签），不再全文刷屏
+        self.assertEqual(result["user_output"]["label"], "Image")
+        self.assertEqual(result["user_output"]["parts"][0]["style"], "red")
 
     def test_file_not_found(self):
         result = vision.read_image_file(os.path.join(self._tmp.name, "nope.png"))

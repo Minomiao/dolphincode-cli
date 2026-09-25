@@ -28,6 +28,9 @@ class BaseSkillLoader:
         self._current_work_dir: Optional[str] = None
         # 完整工具名 → (skill_name, func_name)，加载时确定，调用时零歧义查表
         self._tool_lookup: Dict[str, tuple] = {}
+        # 原生（内置）工具：{短名: {description, parameters, callable}}
+        # 与目录技能共用前缀与查找表，注册名 = f"{前缀}{短名}"（无函数段）
+        self.native_tools: Dict[str, Dict[str, Any]] = {}
 
     # ===== 子类必须实现的抽象接口 =====
 
@@ -77,6 +80,16 @@ class BaseSkillLoader:
                     )
                     continue
                 lookup[tool_name] = (skill_name, func_name)
+        # 原生工具并入查找表：(短名, None) 表示原生条目；与技能重名时技能优先
+        for name in self.native_tools:
+            tool_name = f"{prefix}{name}"
+            if tool_name in lookup:
+                log.warning(
+                    f"工具注册名冲突: {tool_name} 已被技能 "
+                    f"{lookup[tool_name][0]} 占用，原生工具注册不生效"
+                )
+                continue
+            lookup[tool_name] = (name, None)
         self._tool_lookup = lookup
 
     def get_all_tools(self) -> List[Dict[str, Any]]:
@@ -104,6 +117,21 @@ class BaseSkillLoader:
                                 })
                             }
                         })
+
+        # 原生（内置）工具：不参与启停配置，始终提供
+        for name, info in self.native_tools.items():
+            tools.append({
+                "type": "function",
+                "function": {
+                    "name": f"{self._tool_prefix()}{name}",
+                    "description": info.get('description', ''),
+                    "parameters": info.get('parameters', {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    })
+                }
+            })
         return tools
 
     def get_tool_names(self) -> List[str]:
@@ -113,7 +141,39 @@ class BaseSkillLoader:
             if 'functions' in skill_info:
                 for func_name in skill_info['functions'].keys():
                     names.append(f"{self._tool_prefix()}{skill_name}_{func_name}")
+        names.extend(f"{self._tool_prefix()}{name}" for name in self.native_tools)
         return names
+
+    def register_native_tool(self, name: str, description: str, parameters: dict, handler):
+        """注册原生（内置）工具：无 skill.py 的代码级工具，与目录技能同一分发链。
+
+        注册名 = f"{前缀}{name}"；同名重复注册以最后一次为准（支持实例重建）；
+        与目录技能生成的注册名冲突时技能优先，本次注册不生效。
+
+        Args:
+            name: 工具短名（不含前缀）
+            description: 工具描述（发给模型）
+            parameters: JSON Schema 参数定义
+            handler: 同步处理器，按参数名关键字调用，返回 dict 可携带
+                user_output（终端标签）与 images（图片注入）字段
+
+        Returns:
+            True 注册成功 / False 因名称冲突被忽略
+        """
+        tool_name = f"{self._tool_prefix()}{name}"
+        occupied = tool_name in self._tool_lookup and not any(
+            f"{self._tool_prefix()}{n}" == tool_name for n in self.native_tools)
+        if occupied:
+            log.warning(f"原生工具 {tool_name} 与已注册工具冲突，注册被忽略")
+            return False
+        self.native_tools[name] = {
+            "description": description,
+            "parameters": parameters,
+            "callable": handler,
+        }
+        self._rebuild_tool_lookup()
+        log.info(f"原生工具注册成功: {tool_name}")
+        return True
 
     async def call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """调用技能工具（按加载时确定的注册名精确查表）。"""
@@ -124,16 +184,19 @@ class BaseSkillLoader:
             raise ValueError(f"工具不存在: {tool_name}")
 
         skill_name, func_name = resolved
-        skill_info = self.skills[skill_name]
+        if func_name is None:
+            # 原生（内置）工具：直接取注册的处理器，条目结构与函数条目一致
+            func_info = self.native_tools.get(skill_name)
+        else:
+            skill_info = self.skills[skill_name]
+            if 'functions' not in skill_info or func_name not in skill_info['functions']:
+                log.error(f"函数 {func_name} 在技能 {skill_name} 中不存在")
+                raise ValueError(f"函数 {func_name} 在技能 {skill_name} 中不存在")
+            func_info = skill_info['functions'][func_name]
 
-        if 'functions' not in skill_info or func_name not in skill_info['functions']:
-            log.error(f"函数 {func_name} 在技能 {skill_name} 中不存在")
-            raise ValueError(f"函数 {func_name} 在技能 {skill_name} 中不存在")
-
-        func_info = skill_info['functions'][func_name]
-        if 'callable' not in func_info:
-            log.error(f"函数 {func_name} 不可调用")
-            raise ValueError(f"函数 {func_name} 不可调用")
+        if not func_info or 'callable' not in func_info:
+            log.error(f"工具 {tool_name} 不可调用")
+            raise ValueError(f"工具 {tool_name} 不可调用")
 
         # 检查必需参数
         required_params = []

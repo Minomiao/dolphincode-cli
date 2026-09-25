@@ -130,6 +130,20 @@ class DolphinChat:
         self.request_manager = request_manager.get_request_manager()
         
         self.backup_mgr = backup_manager.get_backup_manager()
+
+        # 注册原生 read_image 工具（skill_ 统一分发链）：模型漏识别 @ 引用时的兜底
+        self.skill_mgr.register_native_tool(
+            "read_image",
+            description="读取并查看图片文件。当用户要求查看、分析某张图片但消息中未附带图片时调用。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "图片文件的路径"}
+                },
+                "required": ["path"]
+            },
+            handler=self._handle_read_image,
+        )
         
         self._update_tools()
         self._save_dir_id = None
@@ -455,21 +469,6 @@ class DolphinChat:
             std_tools = self.std_loader.get_all_tools()
             self.tools.extend(std_tools)
 
-            # 原生 read_image 工具：模型主动查看图片（漏识别 @ 引用时的兜底）
-            self.tools.append({
-                "type": "function",
-                "function": {
-                    "name": "read_image",
-                    "description": "读取并查看图片文件。当用户要求查看、分析某张图片但消息中未附带图片时调用。",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "path": {"type": "string", "description": "图片文件的路径"}
-                        },
-                        "required": ["path"]
-                    }
-                }
-            })
         log.debug(f"更新工具列表: 共 {len(self.tools)} 个工具")
     
     def reset_work_directory(self):
@@ -550,14 +549,16 @@ class DolphinChat:
         """把内部图片列表转换为 API content parts（注入 ContextManager 的构建器）。"""
         return vision.build_image_parts(images, self.client, self.model)
 
-    def _handle_read_image(self, arguments: dict) -> dict:
-        """read_image 原生工具：校验图片文件，成功时由 _run_tool_calls 注入合成消息。"""
+    def _handle_read_image(self, path: str = "") -> dict:
+        """read_image 原生工具处理器：校验图片文件，成功时由 _run_tool_calls 注入合成消息。"""
         if not self.context.vision_enabled:
             return {
                 "error": "当前模型不支持视觉，无法查看图片",
                 "suggestion": "请提示用户切换到支持视觉的模型后重试",
+                "user_output": {"label": "Image",
+                                "parts": [{"text": "当前模型不支持视觉", "style": "red"}]},
             }
-        return vision.read_image_file((arguments or {}).get("path", ""))
+        return vision.read_image_file(path or "")
 
     async def _execute_tool(self, tool_name: str, arguments: dict) -> tuple:
         """执行工具，返回 (result_str, had_user_output, user_output)。"""
@@ -566,17 +567,13 @@ class DolphinChat:
         had_user_output = False
         user_output = None
         try:
-            if tool_name == "read_image":
-                result = self._handle_read_image(arguments)
+            result = None
+            for check, handler in self._tool_dispatch:
+                if check(tool_name):
+                    result = await handler(tool_name, arguments)
+                    break
             else:
-                result = None
-            if result is None:
-                for check, handler in self._tool_dispatch:
-                    if check(tool_name):
-                        result = await handler(tool_name, arguments)
-                        break
-                else:
-                    result = {"error": f"未知的工具: {tool_name}"}
+                result = {"error": f"未知的工具: {tool_name}"}
 
             # 使用请求管理器处理申请
             if self.request_manager and isinstance(result, dict):
@@ -720,7 +717,7 @@ class DolphinChat:
         tool_responses = []
         displayed_calls = []
         displayed_results = []
-        pending_images = []  # read_image 成功后待注入的图片列表
+        pending_images = []  # 工具结果携带 images 字段时待注入的图片列表
 
         for tc in tool_calls:
             # 工具间检查点：用户中断后不再启动后续工具
@@ -773,16 +770,17 @@ class DolphinChat:
                 entry["user_output"] = final_uo
             tool_responses.append(entry)
 
-            # read_image 成功：记录待注入的图片，工具结果落盘后追加合成 user 消息
-            if tool_name == "read_image":
-                try:
-                    payload = json.loads(result)
-                except (json.JSONDecodeError, TypeError):
-                    payload = {}
-                if payload.get("success"):
+            # 工具结果携带 images 字段（如 read_image 成功）：记录待注入的
+            # 图片，工具结果落盘后追加合成 user 消息（tool 消息不能带图）
+            try:
+                payload = json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                payload = {}
+            for img in (payload.get("images") if isinstance(payload, dict) else None) or []:
+                if isinstance(img, dict) and img.get("path"):
                     pending_images.append({
-                        "path": payload["path"],
-                        "media_type": payload.get("media_type") or "image/png",
+                        "path": img["path"],
+                        "media_type": img.get("media_type") or "image/png",
                     })
 
             if skip:
@@ -799,12 +797,9 @@ class DolphinChat:
         # 合成注入：每张成功加载的图片跟一条带灰色标签的合成 user 消息，
         # 下一轮 API 请求中由 prepare_messages 转为 content parts
         for img in pending_images:
-            self.add_message(
-                "user",
-                "（系统注入的图片附件）",
-                images=[img],
-                user_output={"label": "Image", "parts": [{"text": os.path.basename(img["path"]), "style": "gray"}]},
-            )
+            # 图片名已由工具行 user_output 灰色标签展示；合成轮仅作为 API
+            # 载体，display=False 避免历史回显重复
+            self.add_message("user", "（系统注入的图片附件）", images=[img], display=False)
 
         if displayed_calls:
             await self._call_callback(events.EVENT_TOOL_CALLS, {

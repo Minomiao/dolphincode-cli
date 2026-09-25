@@ -146,25 +146,43 @@ def build_image_parts(images: list, client, model_name: str) -> list:
     return parts
 
 
+def _image_error(error: str, suggestion: str) -> dict:
+    """构造 read_image 失败结果：错误详情供模型重试，user_output 供终端红色标签展示。"""
+    return {
+        "error": error,
+        "suggestion": suggestion,
+        "user_output": {"label": "Image", "parts": [{"text": error, "style": "red"}]},
+    }
+
+
 def read_image_file(path: str) -> dict:
     """校验图片文件（read_image 工具入口）。
 
     Returns:
-        成功: {"success": True, "path", "media_type", "size"}
-        失败: {"error", "suggestion"}
+        成功: {"success": True, "path", "media_type", "size", "images", "user_output"}
+            images 供 _run_tool_calls 通用注入合成 user 消息（tool 消息不能带图）
+        失败: {"error", "suggestion", "user_output"}
     """
     if not path or not str(path).strip():
-        return {"error": "缺少图片路径参数", "suggestion": "请提供图片文件的路径"}
+        return _image_error("缺少图片路径参数", "请提供图片文件的路径")
     abspath = os.path.realpath(str(path).strip())
     if not os.path.isfile(abspath):
-        return {"error": f"文件不存在: {abspath}", "suggestion": "请确认路径是否正确"}
+        return _image_error(f"文件不存在: {abspath}", "请确认路径是否正确")
     ext = os.path.splitext(abspath)[1].lower()
     if ext not in constants.IMAGE_EXTENSIONS:
-        return {
-            "error": f"不支持的图片格式: {ext}",
-            "suggestion": f"支持的格式: {', '.join(sorted(constants.IMAGE_EXTENSIONS))}",
-        }
+        return _image_error(
+            f"不支持的图片格式: {ext}",
+            f"支持的格式: {', '.join(sorted(constants.IMAGE_EXTENSIONS))}")
     size = os.path.getsize(abspath)
     if size > IMAGE_MAX_BYTES:
-        return {"error": f"图片过大: {size} 字节", "suggestion": "图片需小于 64MiB"}
-    return {"success": True, "path": abspath, "media_type": guess_media_type(abspath), "size": size}
+        return _image_error(f"图片过大: {size} 字节", "图片需小于 64MiB")
+    media_type = guess_media_type(abspath)
+    return {
+        "success": True,
+        "path": abspath,
+        "media_type": media_type,
+        "size": size,
+        "images": [{"path": abspath, "media_type": media_type}],
+        "user_output": {"label": "Image",
+                        "parts": [{"text": os.path.basename(abspath), "style": "gray"}]},
+    }
