@@ -131,6 +131,11 @@ class DolphinChat:
         
         self.backup_mgr = backup_manager.get_backup_manager()
 
+        # 上下文整理冷却：记录上次整理时的轮数，避免高频触发
+        self._compact_last_turn = -10**9
+        # 自动整理开关：headless 调用（chat_ai）需关闭，避免整理自身再次触发整理
+        self.auto_compact_enabled = True
+
         # 注册原生 read_image 工具（skill_ 统一分发链）：模型漏识别 @ 引用时的兜底
         self.skill_mgr.register_native_tool(
             "read_image",
@@ -521,11 +526,22 @@ class DolphinChat:
             return "无法获取目录结构"
     
     async def _check_context_usage(self):
-        """在每轮对话结束后检查上下文用量，通过回调通知。"""
+        """在每轮对话结束后检查上下文用量，通过回调通知；达到告警级别时自动整理。"""
         context_window = config.get_context_window(self.model)
         usage = self.context.check_context_usage(self.messages, context_window)
         # 每轮都发送 usage 信息（不再只在告警时发送）
         await self._call_callback(events.EVENT_CONTEXT_USAGE, usage)
+
+        # 自动上下文整理：high/critical 且过冷却期时触发，失败不影响主流程
+        if self.auto_compact_enabled \
+                and usage.get("level") in ("high", "critical") \
+                and self.context._turn_count - self._compact_last_turn >= constants.COMPACT_COOLDOWN_TURNS:
+            self._compact_last_turn = self.context._turn_count
+            try:
+                from modules.chater import compaction
+                await compaction.compact_history(self, auto=True)
+            except Exception as e:
+                log.error(f"自动上下文整理失败: {e}", exc_info=True)
     
     async def _call_callback(self, event_type, data):
         """调用回调函数，支持同步和异步回调"""

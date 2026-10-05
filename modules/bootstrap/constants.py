@@ -121,6 +121,14 @@ WARN_THRESHOLD = 0.70   # 70%: 提醒用户
 HIGH_THRESHOLD = 0.85   # 85%: 建议清理
 CRITICAL_THRESHOLD = 0.95  # 95%: 强烈建议清理
 
+# ===== 上下文整理（compaction）=====
+# 流程：先归档（无头 AI 写文档）→ 选择 keep/delete（一次 user 到下一次 user 为一组）
+# → 未选择的组统一摘要（_display=False，只发送不回显）
+COMPACT_MIN_FREED_RATIO = 0.15      # 释放量低于窗口该比例时放弃整理
+COMPACT_DECISION_MAX_TOKENS = 2000  # 决策调用输出上限
+COMPACT_SUMMARY_MAX_TOKENS = 4000   # 摘要调用输出上限
+COMPACT_COOLDOWN_TURNS = 3          # 自动整理的最小间隔轮数
+
 # ===== 工具迭代限制 =====
 STREAM_MAX_HARD_LIMIT = 100
 STREAM_INITIAL_MAX = 30

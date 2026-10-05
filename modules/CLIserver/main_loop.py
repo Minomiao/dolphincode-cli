@@ -1,6 +1,7 @@
 """主命令循环：解析用户输入并分发到各子模块。"""
 import sys
 import signal
+import asyncio
 
 from colorama import Fore, Style
 
@@ -186,6 +187,19 @@ def _cmd_language(_args):
     language_settings()
 
 
+def _cmd_compact(_args):
+    """手动触发上下文整理（归档/保留/删除/摘要），异步执行。
+
+    提示（含等待动画与结果）由 EVENT_CONTEXT_COMPACT_* 事件驱动，
+    此处仅处理无对话可整理的边界情况。
+    """
+    if state.chat_instance is None or not state.chat_instance.messages:
+        print(f"{Fore.YELLOW}当前没有可整理的对话{Style.RESET_ALL}")
+        return None
+    from modules.chater import compaction
+    return compaction.compact_history(state.chat_instance)
+
+
 # 命令分派表：keyword（由 get_command_keyword 动态获取）→ 处理器
 _COMMAND_TABLE = {
     get_command_keyword("help"): _cmd_help,
@@ -205,6 +219,7 @@ _COMMAND_TABLE = {
     get_command_keyword("effort"): _cmd_effort,
     get_command_keyword("toggle"): _cmd_toggle,
     get_command_keyword("language"): _cmd_language,
+    get_command_keyword("compact"): _cmd_compact,
 }
 
 
@@ -234,7 +249,11 @@ async def main():
                     if handler is None:
                         print(i18n.t("main.unknown_command", keyword=keyword))
                         continue
-                    if handler(args) is _QUIT:
+                    # 处理器可返回哨兵值或协程（如 /compact 需异步等待）
+                    result = handler(args)
+                    if asyncio.iscoroutine(result):
+                        result = await result
+                    if result is _QUIT:
                         break
                     continue
 

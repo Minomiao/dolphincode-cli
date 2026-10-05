@@ -84,6 +84,10 @@ def _get_default_commands():
             "changes": {
                 "input": "changes",
                 "description": "处理待处理的文件变更"
+            },
+            "compact": {
+                "input": "compact",
+                "description": "让 AI 整理上下文（归档/保留/删除/摘要）"
             }
         }
     }

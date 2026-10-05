@@ -40,6 +40,8 @@ EVENT_OPERATION_CANCELED = "operation_canceled"   # 用户取消了操作
 EVENT_OPERATION_CONFIRMED = "operation_confirmed"  # 用户确认了操作
 EVENT_CONSOLE_OUTPUT = "console_output"     # 控制台输出 {content, level}
 EVENT_CONTEXT_USAGE = "context_usage"       # 上下文用量 {usage_ratio, level}
+EVENT_CONTEXT_COMPACT_START = "context_compact_start"  # 上下文整理开始 {candidates}
+EVENT_CONTEXT_COMPACTED = "context_compacted"  # 上下文整理结束 {freed_tokens, ...}
 
 # 全部事件集合
 ALL_EVENTS = frozenset({
@@ -60,6 +62,8 @@ ALL_EVENTS = frozenset({
     EVENT_OPERATION_CONFIRMED,
     EVENT_CONSOLE_OUTPUT,
     EVENT_CONTEXT_USAGE,
+    EVENT_CONTEXT_COMPACT_START,
+    EVENT_CONTEXT_COMPACTED,
 })
 
 # 交互请求事件：回调需要返回值（用户响应），其余事件返回值被忽略
@@ -80,6 +84,8 @@ EVENT_DATA_FIELDS = {
     EVENT_USER_OUTPUT: ("parts",),
     EVENT_CONSOLE_OUTPUT: ("content",),
     EVENT_CONTEXT_USAGE: ("usage_ratio",),
+    EVENT_CONTEXT_COMPACT_START: ("candidates",),
+    EVENT_CONTEXT_COMPACTED: ("freed_tokens",),
     EVENT_MAX_ITERATIONS_REACHED: ("iterations", "hard_limit"),
 }
 

@@ -128,6 +128,7 @@ async def chat_ai(
     allowed_tools: list | None = None,
     work_directory: str | None = None,
     max_tool_rounds: int = 10,
+    reuse_history_prefix: bool = False,
 ) -> dict:
     """发起一次非交互式 AI 对话，返回完整结果 dict。
 
@@ -136,7 +137,8 @@ async def chat_ai(
 
     Args:
         prompt: 本轮用户输入
-        system_prompt: 自定义系统提示词（默认使用项目标准系统提示词）
+        system_prompt: 自定义系统提示词（默认使用项目标准系统提示词）；
+            reuse_history_prefix=True 时忽略此项，改用项目标准系统提示词以复用前缀
         history: 前置对话历史（不含本轮 prompt），格式与 chat.messages 一致
         temperature: 采样温度
         max_tokens: 最大输出 token 数（默认取配置值）
@@ -146,6 +148,9 @@ async def chat_ai(
             （如 "stdskill_git"）或技能/函数名后缀（如 "file_manager"）
         work_directory: 注入动态上下文的工作目录（不传则不注入）
         max_tool_rounds: 工具回合数上限（避免无限循环）
+        reuse_history_prefix: 复用调用方历史前缀（如上下文整理）。启用时保留项目
+            标准系统提示词并关闭动态上下文注入，使 history 与调用方此前发送给 API
+            的消息逐字节一致，从而命中服务端前缀缓存；history 应传入该发送列表
 
     Returns:
         dict 完整返回结果，由请求方自行处理：
@@ -177,6 +182,8 @@ async def chat_ai(
         request_manager.set_ai_work_directory(saved_work_dir)
 
     chat.effort_level = effort_level
+    # headless 调用一律关闭自动整理，避免整理自身再次触发整理形成递归
+    chat.auto_compact_enabled = False
     # 工具白名单过滤：按加载器注册名反解标识符（完整名/技能名/函数名），只保留允许的工具
     if allowed_tools is not None:
         ids = _tool_ids(chat)
@@ -185,8 +192,12 @@ async def chat_ai(
     if work_directory:
         chat.current_work_directory = work_directory
 
+    # 复用历史前缀：保留项目标准 system 并禁用动态上下文注入，
+    # 使 history 与调用方此前发送的列表逐字节一致（命中服务端前缀缓存）
+    if reuse_history_prefix:
+        chat.context = ContextManager(chat.get_system_prompt)
     # 自定义系统提示词或不注入动态上下文时，替换上下文管理器
-    if system_prompt or not work_directory:
+    elif system_prompt or not work_directory:
         chat.context = ContextManager(
             (lambda: system_prompt) if system_prompt else chat.get_system_prompt,
             chat.get_context_prompt if work_directory else None,

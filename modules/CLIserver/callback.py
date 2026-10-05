@@ -287,3 +287,28 @@ def chat_callback(event_type, data):
             raise GenerationCancelled from None
     elif event_type == events.EVENT_CONTEXT_USAGE:
         ui._pending_context_usage = data
+    elif event_type == events.EVENT_CONTEXT_COMPACT_START:
+        # 与工具调用共用同一等待动画槽，整理期间显示 spinner
+        clear_tool_pending()
+        ui._tool_pending = True
+        ui._spinner_task = asyncio.ensure_future(run_spinner("compact"))
+    elif event_type == events.EVENT_CONTEXT_COMPACTED:
+        # 收尾：停止等待动画并给出结果
+        clear_tool_pending()
+        error = data.get('error')
+        skipped = data.get('skipped')
+        if error or skipped:
+            # 未执行/无需压缩：就地打印一行提示
+            if not ui.at_line_start:
+                sys.stdout.write("\n")
+                ui.at_line_start = True
+            if error:
+                print(f"{Fore.YELLOW}上下文整理未执行: {error}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.GREEN}无需压缩（{skipped}）{Style.RESET_ALL}")
+        else:
+            # 成功：整理记录已写入对话 display（灰色 [Compact] 已完成压缩），
+            # 直接刷新界面呈现整理后的历史
+            from .header import print_header, print_conversation_history
+            state.screen_refresh.refresh(print_header, print_conversation_history)
+            ui.at_line_start = True
