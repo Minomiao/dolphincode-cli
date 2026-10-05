@@ -30,38 +30,22 @@ from modules.logger import get_logger
 
 log = get_logger("Dolphin.compaction")
 
-# 三次调用的任务指令：作为末尾 user 消息追加，不占用 system（保留前缀可复用）
-# 归档指令：约束 AI 使用 memory_manager 写记忆的数量与粒度（防溢出主要靠提示词）
-_ARCHIVE_PROMPT = (
-    "请阅读上文的完整对话记录，把其中值得跨会话保留的信息（关键决策、重要结论、"
-    "项目约定、踩坑记录等）通过 write_memory 工具写入项目记忆。\n"
-    "硬性要求：\n"
-    "- 最多写 3 条记忆，内容相近的必须合并为一条；\n"
-    "- 每条记忆的 key 使用 archive_ 开头的下划线英文短语；\n"
-    "- 每条正文不超过 20000 字符，宁缺毋滥；无价值内容可以不写；\n"
-    "- 完成后用一行 JSON 汇报：{\"keys\": [写入的 key...]}"
-)
-
-# 决策指令：输出 keep/delete 组号，未提及的组默认进入摘要
-_DECISION_PROMPT = (
-    "请基于上文的完整对话，对下面按组编号的清单逐组决定：\n"
-    "keep（原样保留，仅限对当前任务必不可少的组）、"
-    "delete（完全无用，如闲聊、已失败且无关的尝试）；"
-    "没有把握的组不要列入，它们会被压缩成摘要。\n"
-    "只输出 JSON：{\"keep\": [组号...], \"delete\": [组号...], \"goal\": \"当前任务一句话\"}"
-)
-
-# 摘要指令：把指定组压缩为一段整体摘要
-_SUMMARY_PROMPT = (
-    "请把上文对话中下列分组的内容压缩为一段中文摘要，"
-    "必须保留：原始任务目标、已做出的关键决策、重要的工具结果/文件路径、未完成的待办。"
-    "直接输出摘要正文，不要 JSON、不要解释。\n\n需要压缩的分组：\n{manifest}\n\n"
-    "当前任务：{goal}"
-)
+# 三次调用的任务指令存放于 date/prompts/compaction/ 下，由 prompt_manager 加载
+# （映射见 prompt_defaults._PROMPT_FILES），作为末尾 user 消息追加、不占用 system，
+# 以保留可复用的对话前缀。指令内容参考项目提示词的英文 <tag> 风格。
 
 # 决策/摘要清单的预览参数（完整内容已在历史前缀中，清单只需标识组）
 _PREVIEW_PER_MSG = 100
 _PREVIEW_TOTAL = 500
+
+
+def _get_compact_prompt(key: str) -> str:
+    """读取上下文整理提示词。
+
+    每次调用都从 prompt_manager 现取，保证运行期编辑提示词文件后立即生效。
+    """
+    from modules.main_server.prompt_manager import get_prompt_manager
+    return get_prompt_manager().get_prompt(key)
 
 
 def build_groups(messages: list) -> list:
@@ -116,9 +100,9 @@ def _preview(group: dict) -> str:
 
 
 def _manifest(groups: list) -> str:
-    """生成分组清单文本：组号 | token 估算 | 预览。"""
+    """生成分组清单文本：组号 | token 估算 | 预览（与英文提示词的 group 指代一致）。"""
     return "\n".join(
-        f"组 {g['index']} | ~{g['tokens']} token | {_preview(g)}" for g in groups
+        f"group {g['index']} | ~{g['tokens']} tokens | {_preview(g)}" for g in groups
     )
 
 
@@ -146,7 +130,7 @@ async def _archive(chat, history: list) -> list:
     from modules.functions.ai_caller import chat_ai
 
     result = await chat_ai(
-        prompt=_ARCHIVE_PROMPT,
+        prompt=_get_compact_prompt("compaction_archive"),
         history=history,
         allowed_tools=["memory_manager"],
         work_directory=chat.current_work_directory,
@@ -172,7 +156,7 @@ async def _request_decisions(chat, groups: list, history: list) -> dict | None:
     """阶段 2：AI 逐组选择 keep/delete，未提及的组默认进入摘要。"""
     from modules.functions.ai_caller import chat_ai
 
-    prompt = f"{_DECISION_PROMPT}\n\n对话分组清单：\n{_manifest(groups)}"
+    prompt = f"{_get_compact_prompt('compaction_decision')}\n\n<groups>\n{_manifest(groups)}"
     result = await chat_ai(
         prompt=prompt,
         history=history,
@@ -188,7 +172,10 @@ async def _request_summary(chat, groups: list, goal: str, history: list) -> str 
     """阶段 3：对指定组生成一条整体摘要。"""
     from modules.functions.ai_caller import chat_ai
 
-    prompt = _SUMMARY_PROMPT.format(manifest=_manifest(groups), goal=goal)
+    prompt = (
+        f"{_get_compact_prompt('compaction_summary')}\n\n"
+        f"<groups>\n{_manifest(groups)}\n\n<current_task>\n{goal}"
+    )
     result = await chat_ai(
         prompt=prompt,
         history=history,

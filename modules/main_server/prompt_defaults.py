@@ -9,6 +9,10 @@ _PROMPT_FILES = {
     "work_directory": "work_directory.txt",
     "directory_structure": "directory_structure.txt",
     "turn_reminder": "turn_reminder.txt",
+    # 上下文整理提示词（独立子文件夹，便于单独维护）
+    "compaction_archive": "compaction/archive.txt",
+    "compaction_decision": "compaction/decision.txt",
+    "compaction_summary": "compaction/summary.txt",
 }
 
 _EFFORT_FILES = {
@@ -241,5 +245,57 @@ _DEFAULTS = {
         "  conventions, decisions, progress, or other information worth keeping,\n"
         "  save it with skill_memory_manager_write_memory so it survives across\n"
         "  sessions. Skip this if nothing new is worth remembering."
+    ),
+    "compaction/archive.txt": (
+        "<role>\n"
+        "You are a context archiving assistant. You turn a conversation's durable\n"
+        "knowledge into project memory records.\n"
+        "\n"
+        "<task>\n"
+        "Read the full conversation above and write the information worth keeping\n"
+        "across sessions -- key decisions, important conclusions, project\n"
+        "conventions, and pitfalls -- into project memory with the write_memory tool.\n"
+        "\n"
+        "<requirements>\n"
+        "- Write at most 3 records. Merge closely related topics into one record.\n"
+        "- Every record must pass all three parameters in the same call:\n"
+        "  key - a short English phrase with underscores, prefixed with \"archive_\";\n"
+        "  title - a short human-readable title;\n"
+        "  content - the full body, no more than 20000 characters.\n"
+        "- Be selective. Skip anything not worth remembering instead of padding it.\n"
+        "- When done, report with a single line of JSON: {\"keys\": [\"...\"]}"
+    ),
+    "compaction/decision.txt": (
+        "<role>\n"
+        "You are a context curation assistant. You decide which parts of a\n"
+        "conversation must stay verbatim in the context window.\n"
+        "\n"
+        "<task>\n"
+        "The conversation above is listed below by group. Decide for each group:\n"
+        "- keep - indispensable for the current task, must stay verbatim;\n"
+        "- delete - useless, such as small talk or failed attempts that no longer\n"
+        "  matter.\n"
+        "Groups you do not list are compressed into a summary.\n"
+        "\n"
+        "<rules>\n"
+        "- List only groups you are certain about. When in doubt, leave a group out;\n"
+        "  it will be summarized rather than lost.\n"
+        "- Output JSON only, with no extra text:\n"
+        "  {\"keep\": [group ids], \"delete\": [group ids], \"goal\": \"current task in one sentence\"}"
+    ),
+    "compaction/summary.txt": (
+        "<role>\n"
+        "You are a context summarization assistant. You compress conversation\n"
+        "fragments into a single summary that replaces them.\n"
+        "\n"
+        "<task>\n"
+        "Summarize the groups listed below into one paragraph. Preserve:\n"
+        "- the original task goal;\n"
+        "- decisions already made and their rationale;\n"
+        "- important tool results, file paths, and commands;\n"
+        "- unfinished work and next steps.\n"
+        "\n"
+        "<output>\n"
+        "Output only the summary text. No JSON, no preamble, no headings."
     ),
 }

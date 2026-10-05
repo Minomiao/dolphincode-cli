@@ -86,10 +86,13 @@ class PromptManager:
     # ---- 文件管理 ----
 
     def _ensure_default_files(self):
-        """确保默认提示词文件存在，不存在则创建"""
+        """确保默认提示词文件存在，不存在则创建（支持子文件夹）"""
         for filename, content in _DEFAULTS.items():
             filepath = os.path.join(app_paths.PROMPT_DIR, filename)
             if not os.path.exists(filepath):
+                parent = os.path.dirname(filepath)
+                if parent and not os.path.exists(parent):
+                    os.makedirs(parent, exist_ok=True)
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(content)
                 log.info(f"创建默认提示词文件: {filepath}")
