@@ -64,21 +64,31 @@ _INTERNAL_MSG_FIELDS = {
 }
 
 
-def _build_result(chat, final_content: str) -> dict:
-    """从对话实例组装完整返回结果，供请求方自行处理。"""
+def _build_result(chat, final_content: str, start_index: int = 0) -> dict:
+    """从对话实例组装完整返回结果，供请求方自行处理。
+
+    Args:
+        chat: DolphinChat 实例
+        final_content: 最终回复文本
+        start_index: 本次调用新增消息的起始索引。复用历史前缀（history）时
+            传入 len(history)，避免历史里既有的工具调用被误计入本次结果；
+            默认 0 表示统计全部消息。
+    """
     # 去掉内部字段，返回干净的对话历史
     messages = [
         {k: v for k, v in m.items() if k not in _INTERNAL_MSG_FIELDS}
         for m in chat.messages
     ]
+    # 本次新增部分：工具调用、思考过程与截断判断只统计这一段
+    new_messages = messages[start_index:]
 
     # 提取工具调用记录（名称、参数、执行结果）
     tool_results = {
         m.get("tool_call_id"): m.get("content", "")
-        for m in messages if m.get("role") == "tool"
+        for m in new_messages if m.get("role") == "tool"
     }
     tool_calls = []
-    for m in messages:
+    for m in new_messages:
         if m.get("role") == "assistant":
             for tc in m.get("tool_calls") or []:
                 fn = tc.get("function", {})
@@ -91,15 +101,15 @@ def _build_result(chat, final_content: str) -> dict:
     # 各轮思考过程
     reasoning = [
         m.get("reasoning_content")
-        for m in messages
+        for m in new_messages
         if m.get("role") == "assistant" and m.get("reasoning_content")
     ]
 
     # 最后一条 assistant 仍带工具调用说明因达到回合上限被截断
-    last = messages[-1] if messages else None
+    last = new_messages[-1] if new_messages else None
     truncated = bool(last and last.get("role") == "assistant" and last.get("tool_calls"))
     rounds = sum(
-        1 for m in messages
+        1 for m in new_messages
         if m.get("role") == "assistant" and m.get("tool_calls")
     )
 
@@ -203,11 +213,13 @@ async def chat_ai(
             chat.get_context_prompt if work_directory else None,
         )
 
+    history_len = len(history) if history else 0
     if history:
         chat.messages = list(history)
 
     final_content = await chat.chat(prompt, max_tool_rounds=max_tool_rounds)
-    return _build_result(chat, final_content)
+    # 只统计本次新增消息，避免历史前缀里既有的工具调用被计入结果
+    return _build_result(chat, final_content, history_len)
 
 
 def chat_ai_sync(prompt: str, **kwargs) -> dict:

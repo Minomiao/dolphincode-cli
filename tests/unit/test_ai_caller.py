@@ -217,6 +217,25 @@ class TestBuildResult(unittest.TestCase):
         self.assertFalse(result["truncated"])
         self.assertEqual(result["rounds"], 0)
 
+    def test_start_index_excludes_history_tool_calls(self):
+        """复用历史前缀时，历史里既有的工具调用不计入本次结果。"""
+        history = make_messages()  # 含 1 个 assistant(tool_calls) 及其 tool 结果
+        new_part = [
+            {"role": "assistant", "content": "", "tool_calls": [
+                {"id": "call_2", "type": "function", "function": {
+                    "name": "skill_memory_manager_write_memory", "arguments": '{"key": "k"}'}},
+            ]},
+            {"role": "tool", "tool_call_id": "call_2", "content": '{"success": true, "key": "k"}'},
+            {"role": "assistant", "content": "完成"},
+        ]
+        chat = FakeChat(history + new_part)
+        result = ai_caller._build_result(chat, "完成", start_index=len(history))
+        # 只统计本次新增的工具调用，历史里的那条被排除
+        self.assertEqual(len(result["tool_calls"]), 1)
+        self.assertIn("write_memory", result["tool_calls"][0]["name"])
+        # 返回的 messages 仍为完整历史（保持兼容）
+        self.assertEqual(len(result["messages"]), len(history) + len(new_part))
+
 
 # ===== chat_ai 完整流程 =====
 
