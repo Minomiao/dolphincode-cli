@@ -17,4 +17,5 @@ def compute(root_path: str) -> dict:
         "BACKUP_DIR": os.path.join(date_dir, "backup"),
         "MODELS_DIR": os.path.join(root_path, "models"),
         "MODELS_FILE": os.path.join(date_dir, "models.json"),
+        "MCP_FILE": os.path.join(date_dir, "mcp_servers.json"),
     }

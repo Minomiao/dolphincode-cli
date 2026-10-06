@@ -16,6 +16,7 @@ COMMANDS_FILE = None
 BACKUP_DIR = None
 MODELS_DIR = None
 MODELS_FILE = None
+MCP_FILE = None
 
 
 def _init_date_dpc():

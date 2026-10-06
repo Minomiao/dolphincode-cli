@@ -143,3 +143,59 @@ def show_skills():
     enter_screen(_render,
                  command_input=cmd.get_command('skills'),
                  command_info=f"╰─{cmd.get_command_description('skills')}")
+
+
+def show_mcp():
+    """MCP 服务器管理界面（上下键导航，Enter 切换启用状态）。
+
+    仅修改配置中的 enabled 并写回 date/mcp_servers.json；
+    实际建连/断开在退出界面后由调用方统一应用。
+    """
+    cmd = state.cmd
+    log.info("显示 MCP 服务器管理")
+
+    mgr = state.chat_instance.mcp_mgr
+    servers = mgr.list_servers()
+    if not servers:
+        print(f"\n{i18n.t('mcp.no_servers')}")
+        return
+
+    def _render():
+        from .key_nav import navigate
+
+        def _status_text(server):
+            if not server.get('enabled', True):
+                return i18n.t("tools.disabled")
+            if server.get('connected'):
+                return i18n.t("mcp.status_connected", count=server.get('tool_count', 0))
+            if server.get('error'):
+                return i18n.t("mcp.status_failed")
+            return i18n.t("tools.enabled")
+
+        def _label(server, i):
+            transport = server.get('transport') or "-"
+            detail = _flatten_desc(server.get('detail', ''))
+            return (f"{server['name']}  [{transport}]\n"
+                    f"{detail}\n"
+                    f"[{_status_text(server)}]")
+
+        def _toggle(server, i):
+            name = server['name']
+            target_status = not server.get('enabled', True)
+            if not mgr.set_server_enabled(name, target_status):
+                _console.print(f"[red]{i18n.t('main.error', error=name)}[/red]")
+                return False
+            server['enabled'] = target_status
+            new_status_text = i18n.t("tools.enabled") if target_status else i18n.t("tools.disabled")
+            _console.print(f"[green]{i18n.t('skills.toggled', name=name, status=new_status_text)}[/green]")
+            return False  # 继续导航，可连续切换多个服务器
+
+        navigate(i18n.t("mcp.title"), i18n.t("mcp.subtitle", count=len(servers)),
+                 servers, _label, _toggle,
+                 i18n.t("skills.hint"),
+                 line_height=3)
+
+    from .screen_refresh import enter_screen
+    enter_screen(_render,
+                 command_input=cmd.get_command('mcp'),
+                 command_info=f"╰─{cmd.get_command_description('mcp')}")

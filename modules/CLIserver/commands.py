@@ -57,6 +57,10 @@ def _get_default_commands():
                 "input": "skills",
                 "description": "查看可用技能"
             },
+            "mcp": {
+                "input": "mcp",
+                "description": "查看/启停 MCP 服务器"
+            },
             "toggle": {
                 "input": "toggle",
                 "description": "切换工具启用/禁用状态"

@@ -5235,3 +5235,302 @@ TRANSLATIONS = {
         "conv.not_found": "喵找不到對話 '{name}' 喵",
     },
 }
+
+
+# ===== MCP 服务器管理文案 =====
+# 新增键集中追加并统一合并到各语言，避免在主表中逐语言分散插入；
+# 未列出的语言使用简体中文回退。占位符须与 zh-CN 一致（{count}）。
+_MCP_TEXTS = {
+    "zh-CN": {
+        "mcp.title": "MCP 服务器",
+        "mcp.subtitle": "共 {count} 个 MCP 服务器，Enter 切换状态",
+        "mcp.no_servers": "没有配置 MCP 服务器（可在 date/mcp_servers.json 中添加）",
+        "mcp.status_connected": "已连接 · {count} 工具",
+        "mcp.status_failed": "连接失败",
+    },
+    "zh-TW": {
+        "mcp.title": "MCP 伺服器",
+        "mcp.subtitle": "共 {count} 個 MCP 伺服器，Enter 切換狀態",
+        "mcp.no_servers": "沒有設定 MCP 伺服器（可在 date/mcp_servers.json 中新增）",
+        "mcp.status_connected": "已連線 · {count} 個工具",
+        "mcp.status_failed": "連線失敗",
+    },
+    "en-US": {
+        "mcp.title": "MCP Servers",
+        "mcp.subtitle": "{count} MCP servers total, Enter to toggle",
+        "mcp.no_servers": "No MCP servers configured (add them in date/mcp_servers.json)",
+        "mcp.status_connected": "Connected · {count} tools",
+        "mcp.status_failed": "Connection failed",
+    },
+    "ja-JP": {
+        "mcp.title": "MCP サーバー",
+        "mcp.subtitle": "全 {count} 個の MCP サーバー、Enter で状態切替",
+        "mcp.no_servers": "MCP サーバーが設定されていません（date/mcp_servers.json で追加できます）",
+        "mcp.status_connected": "接続済み · {count} ツール",
+        "mcp.status_failed": "接続に失敗",
+    },
+    "ko-KR": {
+        "mcp.title": "MCP 서버",
+        "mcp.subtitle": "총 {count}개 MCP 서버, Enter로 상태 전환",
+        "mcp.no_servers": "설정된 MCP 서버가 없습니다 (date/mcp_servers.json 에서 추가 가능)",
+        "mcp.status_connected": "연결됨 · {count}개 도구",
+        "mcp.status_failed": "연결 실패",
+    },
+    "fr-FR": {
+        "mcp.title": "Serveurs MCP",
+        "mcp.subtitle": "{count} serveurs MCP au total, Entrée pour basculer",
+        "mcp.no_servers": "Aucun serveur MCP configuré (à ajouter dans date/mcp_servers.json)",
+        "mcp.status_connected": "Connecté · {count} outils",
+        "mcp.status_failed": "Échec de la connexion",
+    },
+    "de-DE": {
+        "mcp.title": "MCP-Server",
+        "mcp.subtitle": "{count} MCP-Server insgesamt, Enter zum Umschalten",
+        "mcp.no_servers": "Keine MCP-Server konfiguriert (in date/mcp_servers.json hinzufügen)",
+        "mcp.status_connected": "Verbunden · {count} Tools",
+        "mcp.status_failed": "Verbindung fehlgeschlagen",
+    },
+    "es-ES": {
+        "mcp.title": "Servidores MCP",
+        "mcp.subtitle": "{count} servidores MCP en total, Enter para alternar",
+        "mcp.no_servers": "No hay servidores MCP configurados (añádelos en date/mcp_servers.json)",
+        "mcp.status_connected": "Conectado · {count} herramientas",
+        "mcp.status_failed": "Conexión fallida",
+    },
+    "ru-RU": {
+        "mcp.title": "Серверы MCP",
+        "mcp.subtitle": "Всего {count} серверов MCP, Enter для переключения",
+        "mcp.no_servers": "Серверы MCP не настроены (добавьте в date/mcp_servers.json)",
+        "mcp.status_connected": "Подключено · {count} инструментов",
+        "mcp.status_failed": "Ошибка подключения",
+    },
+    "pt-BR": {
+        "mcp.title": "Servidores MCP",
+        "mcp.subtitle": "{count} servidores MCP no total, Enter para alternar",
+        "mcp.no_servers": "Nenhum servidor MCP configurado (adicione em date/mcp_servers.json)",
+        "mcp.status_connected": "Conectado · {count} ferramentas",
+        "mcp.status_failed": "Falha na conexão",
+    },
+    "it-IT": {
+        "mcp.title": "Server MCP",
+        "mcp.subtitle": "{count} server MCP in totale, Enter per cambiare stato",
+        "mcp.no_servers": "Nessun server MCP configurato (aggiungili in date/mcp_servers.json)",
+        "mcp.status_connected": "Connesso · {count} strumenti",
+        "mcp.status_failed": "Connessione non riuscita",
+    },
+    "nl-NL": {
+        "mcp.title": "MCP-servers",
+        "mcp.subtitle": "{count} MCP-servers in totaal, Enter om te wisselen",
+        "mcp.no_servers": "Geen MCP-servers geconfigureerd (toevoegen in date/mcp_servers.json)",
+        "mcp.status_connected": "Verbonden · {count} tools",
+        "mcp.status_failed": "Verbinding mislukt",
+    },
+    "pl-PL": {
+        "mcp.title": "Serwery MCP",
+        "mcp.subtitle": "{count} serwerów MCP, Enter przełącza stan",
+        "mcp.no_servers": "Brak skonfigurowanych serwerów MCP (dodaj w date/mcp_servers.json)",
+        "mcp.status_connected": "Połączono · {count} narzędzi",
+        "mcp.status_failed": "Połączenie nie powiodło się",
+    },
+    "tr-TR": {
+        "mcp.title": "MCP Sunucuları",
+        "mcp.subtitle": "Toplam {count} MCP sunucusu, Enter ile durum değiştir",
+        "mcp.no_servers": "Yapılandırılmış MCP sunucusu yok (date/mcp_servers.json dosyasına ekleyin)",
+        "mcp.status_connected": "Bağlandı · {count} araç",
+        "mcp.status_failed": "Bağlantı başarısız",
+    },
+    "ar-SA": {
+        "mcp.title": "خوادم MCP",
+        "mcp.subtitle": "إجمالي {count} خادم MCP، اضغط Enter للتبديل",
+        "mcp.no_servers": "لا توجد خوادم MCP مُهيأة (أضفها في date/mcp_servers.json)",
+        "mcp.status_connected": "متصل · {count} أداة",
+        "mcp.status_failed": "فشل الاتصال",
+    },
+    "th-TH": {
+        "mcp.title": "เซิร์ฟเวอร์ MCP",
+        "mcp.subtitle": "ทั้งหมด {count} เซิร์ฟเวอร์ MCP, Enter เพื่อสลับสถานะ",
+        "mcp.no_servers": "ยังไม่ได้ตั้งค่าเซิร์ฟเวอร์ MCP (เพิ่มได้ใน date/mcp_servers.json)",
+        "mcp.status_connected": "เชื่อมต่อแล้ว · {count} เครื่องมือ",
+        "mcp.status_failed": "เชื่อมต่อล้มเหลว",
+    },
+    "vi-VN": {
+        "mcp.title": "Máy chủ MCP",
+        "mcp.subtitle": "Tổng {count} máy chủ MCP, Enter để chuyển trạng thái",
+        "mcp.no_servers": "Chưa cấu hình máy chủ MCP (thêm trong date/mcp_servers.json)",
+        "mcp.status_connected": "Đã kết nối · {count} công cụ",
+        "mcp.status_failed": "Kết nối thất bại",
+    },
+    "id-ID": {
+        "mcp.title": "Server MCP",
+        "mcp.subtitle": "Total {count} server MCP, Enter untuk beralih",
+        "mcp.no_servers": "Belum ada server MCP yang dikonfigurasi (tambahkan di date/mcp_servers.json)",
+        "mcp.status_connected": "Terhubung · {count} alat",
+        "mcp.status_failed": "Koneksi gagal",
+    },
+    "hi-IN": {
+        "mcp.title": "MCP सर्वर",
+        "mcp.subtitle": "कुल {count} MCP सर्वर, स्थिति बदलने के लिए Enter",
+        "mcp.no_servers": "कोई MCP सर्वर कॉन्फ़िगर नहीं (date/mcp_servers.json में जोड़ें)",
+        "mcp.status_connected": "कनेक्टेड · {count} टूल",
+        "mcp.status_failed": "कनेक्शन विफल",
+    },
+    "sv-SE": {
+        "mcp.title": "MCP-servrar",
+        "mcp.subtitle": "{count} MCP-servrar totalt, Enter för att växla",
+        "mcp.no_servers": "Inga MCP-servrar konfigurerade (lägg till i date/mcp_servers.json)",
+        "mcp.status_connected": "Ansluten · {count} verktyg",
+        "mcp.status_failed": "Anslutning misslyckades",
+    },
+    "uk-UA": {
+        "mcp.title": "Сервери MCP",
+        "mcp.subtitle": "Усього {count} серверів MCP, Enter для перемикання",
+        "mcp.no_servers": "Сервери MCP не налаштовано (додайте в date/mcp_servers.json)",
+        "mcp.status_connected": "Підключено · {count} інструментів",
+        "mcp.status_failed": "Помилка підключення",
+    },
+    "he-IL": {
+        "mcp.title": "שרתי MCP",
+        "mcp.subtitle": "בסך הכל {count} שרתי MCP, Enter להחלפת מצב",
+        "mcp.no_servers": "לא הוגדרו שרתי MCP (הוסף ב-date/mcp_servers.json)",
+        "mcp.status_connected": "מחובר · {count} כלים",
+        "mcp.status_failed": "החיבור נכשל",
+    },
+    "cs-CZ": {
+        "mcp.title": "Servery MCP",
+        "mcp.subtitle": "Celkem {count} serverů MCP, Enter přepne stav",
+        "mcp.no_servers": "Nejsou nakonfigurovány žádné servery MCP (přidejte do date/mcp_servers.json)",
+        "mcp.status_connected": "Připojeno · {count} nástrojů",
+        "mcp.status_failed": "Připojení se nezdařilo",
+    },
+    "hu-HU": {
+        "mcp.title": "MCP-szerverek",
+        "mcp.subtitle": "Összesen {count} MCP-szerver, Enter a váltáshoz",
+        "mcp.no_servers": "Nincs beállított MCP-szerver (add hozzá a date/mcp_servers.json fájlban)",
+        "mcp.status_connected": "Csatlakozva · {count} eszköz",
+        "mcp.status_failed": "A kapcsolódás sikertelen",
+    },
+    "ro-RO": {
+        "mcp.title": "Servere MCP",
+        "mcp.subtitle": "{count} servere MCP în total, Enter pentru comutare",
+        "mcp.no_servers": "Nu există servere MCP configurate (adaugă în date/mcp_servers.json)",
+        "mcp.status_connected": "Conectat · {count} instrumente",
+        "mcp.status_failed": "Conectare eșuată",
+    },
+    "da-DK": {
+        "mcp.title": "MCP-servere",
+        "mcp.subtitle": "{count} MCP-servere i alt, Enter for at skifte",
+        "mcp.no_servers": "Ingen MCP-servere konfigureret (tilføj i date/mcp_servers.json)",
+        "mcp.status_connected": "Forbundet · {count} værktøjer",
+        "mcp.status_failed": "Forbindelse mislykkedes",
+    },
+    "fi-FI": {
+        "mcp.title": "MCP-palvelimet",
+        "mcp.subtitle": "Yhteensä {count} MCP-palvelinta, Enter vaihtaaksesi",
+        "mcp.no_servers": "MCP-palvelimia ei ole määritetty (lisää tiedostoon date/mcp_servers.json)",
+        "mcp.status_connected": "Yhdistetty · {count} työkalua",
+        "mcp.status_failed": "Yhteys epäonnistui",
+    },
+    "nb-NO": {
+        "mcp.title": "MCP-servere",
+        "mcp.subtitle": "{count} MCP-servere totalt, Enter for å bytte",
+        "mcp.no_servers": "Ingen MCP-servere konfigurert (legg til i date/mcp_servers.json)",
+        "mcp.status_connected": "Tilkoblet · {count} verktøy",
+        "mcp.status_failed": "Tilkobling mislyktes",
+    },
+    "ms-MY": {
+        "mcp.title": "Pelayan MCP",
+        "mcp.subtitle": "Jumlah {count} pelayan MCP, Enter untuk togol",
+        "mcp.no_servers": "Tiada pelayan MCP dikonfigurasikan (tambah dalam date/mcp_servers.json)",
+        "mcp.status_connected": "Bersambung · {count} alat",
+        "mcp.status_failed": "Sambungan gagal",
+    },
+    "el-GR": {
+        "mcp.title": "Διακομιστές MCP",
+        "mcp.subtitle": "Σύνολο {count} διακομιστών MCP, Enter για εναλλαγή",
+        "mcp.no_servers": "Δεν έχουν ρυθμιστεί διακομιστές MCP (προσθέστε στο date/mcp_servers.json)",
+        "mcp.status_connected": "Συνδεδεμένο · {count} εργαλεία",
+        "mcp.status_failed": "Η σύνδεση απέτυχε",
+    },
+    "bg-BG": {
+        "mcp.title": "MCP сървъри",
+        "mcp.subtitle": "Общо {count} MCP сървъра, Enter за превключване",
+        "mcp.no_servers": "Няма конфигурирани MCP сървъри (добавете в date/mcp_servers.json)",
+        "mcp.status_connected": "Свързано · {count} инструмента",
+        "mcp.status_failed": "Неуспешна връзка",
+    },
+    "sr-RS": {
+        "mcp.title": "MCP сервери",
+        "mcp.subtitle": "Укупно {count} MCP сервера, Enter за промену стања",
+        "mcp.no_servers": "Нема конфигурисаних MCP сервера (додајте у date/mcp_servers.json)",
+        "mcp.status_connected": "Повезано · {count} алата",
+        "mcp.status_failed": "Веза није успела",
+    },
+    "lt-LT": {
+        "mcp.title": "MCP serveriai",
+        "mcp.subtitle": "Iš viso {count} MCP serverių, Enter norėdami perjungti",
+        "mcp.no_servers": "Nėra sukonfigūruotų MCP serverių (pridėkite į date/mcp_servers.json)",
+        "mcp.status_connected": "Prisijungta · {count} įrankių",
+        "mcp.status_failed": "Ryšys nepavyko",
+    },
+    "fa-IR": {
+        "mcp.title": "سرورهای MCP",
+        "mcp.subtitle": "در مجموع {count} سرور MCP، برای تغییر Enter بزنید",
+        "mcp.no_servers": "هیچ سرور MCP پیکربندی نشده است (در date/mcp_servers.json اضافه کنید)",
+        "mcp.status_connected": "متصل · {count} ابزار",
+        "mcp.status_failed": "اتصال ناموفق بود",
+    },
+    "bn-BD": {
+        "mcp.title": "MCP সার্ভার",
+        "mcp.subtitle": "মোট {count}টি MCP সার্ভার, টগল করতে Enter",
+        "mcp.no_servers": "কোনো MCP সার্ভার কনফিগার করা নেই (date/mcp_servers.json এ যোগ করুন)",
+        "mcp.status_connected": "সংযুক্ত · {count}টি টুল",
+        "mcp.status_failed": "সংযোগ ব্যর্থ",
+    },
+    "tl-PH": {
+        "mcp.title": "Mga MCP Server",
+        "mcp.subtitle": "{count} MCP server sa kabuuan, Enter para i-toggle",
+        "mcp.no_servers": "Walang naka-configure na MCP server (magdagdag sa date/mcp_servers.json)",
+        "mcp.status_connected": "Konektado · {count} tool",
+        "mcp.status_failed": "Nabigo ang koneksyon",
+    },
+    "sw-KE": {
+        "mcp.title": "Seva za MCP",
+        "mcp.subtitle": "Jumla ya seva {count} za MCP, Enter kubadilisha",
+        "mcp.no_servers": "Hakuna seva za MCP zilizosanidiwa (ongeza katika date/mcp_servers.json)",
+        "mcp.status_connected": "Imeunganishwa · zana {count}",
+        "mcp.status_failed": "Muunganisho umeshindikana",
+    },
+    "ka-GE": {
+        "mcp.title": "MCP სერვერები",
+        "mcp.subtitle": "სულ {count} MCP სერვერი, Enter გადართვისთვის",
+        "mcp.no_servers": "MCP სერვერები არ არის კონფიგურირებული (დაამატეთ date/mcp_servers.json-ში)",
+        "mcp.status_connected": "დაკავშირებულია · {count} ხელსაწყო",
+        "mcp.status_failed": "კავშირი ვერ დამყარდა",
+    },
+    "wenyan": {
+        "mcp.title": "MCP 伺服器",
+        "mcp.subtitle": "凡 {count} 具 MCP 伺服器，按 Enter 易其狀態",
+        "mcp.no_servers": "未置 MCP 伺服器（可於 date/mcp_servers.json 增之）",
+        "mcp.status_connected": "已連 · {count} 器",
+        "mcp.status_failed": "連之不果",
+    },
+    "nyannyan": {
+        "mcp.title": "MCP サーバーだにゃ",
+        "mcp.subtitle": "{count} 個の MCP サーバーだにゃ、Enter で切り替えにゃ",
+        "mcp.no_servers": "MCP サーバーが設定されてないにゃ（date/mcp_servers.json で追加にゃ）",
+        "mcp.status_connected": "接続したにゃ · {count} ツールにゃ",
+        "mcp.status_failed": "接続できなかったにゃ",
+    },
+}
+
+
+def _merge_mcp_texts():
+    """把 MCP 文案合并进主翻译表，保持各语言键集一致。"""
+    for code, texts in _MCP_TEXTS.items():
+        table = TRANSLATIONS.get(code)
+        if table is None:
+            continue
+        table.update(texts)
+
+
+_merge_mcp_texts()

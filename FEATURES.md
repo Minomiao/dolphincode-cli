@@ -145,8 +145,13 @@
 
 ## MCP Integration
 
-- [x] MCP protocol manager (`modules/mcp_manager.py`)
-- [x] Tool prefix format: `<server>_<tool>`
+- [x] MCP protocol manager (`modules/loader/mcp_manager.py`)
+- [x] Tool prefix format: `mcp_<server>_<tool>`
+- [x] Transports: stdio / sse / http, configured in `date/mcp_servers.json`
+- [x] Async lifecycle: connect on startup, per-server exit stacks, disconnect on exit
+- [x] Runtime reload (`mcp_reload`) and install/uninstall/list control tools (`mcp_install` / `mcp_uninstall` / `mcp_list`)
+- [x] `/mcp` command for viewing and enabling/disabling MCP servers
+- [x] `stdskills/mcp-installer` standard skill guiding the AI through installation
 
 ## Architecture
 

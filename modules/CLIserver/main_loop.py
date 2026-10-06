@@ -19,7 +19,7 @@ from .settings import settings_mode, model_settings, toggle_tools, effort_settin
 from .conversation_ops import (
     open_work_directory, new_conversation, load_conversation, select_conversation
 )
-from .display import show_help, show_tools, show_skills
+from .display import show_help, show_tools, show_skills, show_mcp
 
 log = get_logger("Dolphin.main_loop")
 
@@ -135,6 +135,38 @@ def _cmd_skills(_args):
     show_skills()
 
 
+def _cmd_mcp(_args):
+    """管理 MCP 服务器（重载 + 查看 / 启停）。"""
+    return _mcp_flow()
+
+
+async def _mcp_flow():
+    """进入 /mcp：先按磁盘配置重载连接，再显示界面并应用启停。"""
+    mgr = state.chat_instance.mcp_mgr
+    try:
+        await mgr.reload()
+    except Exception as e:
+        log.error(f"MCP 重载失败: {e}")
+    show_mcp()
+    await _apply_mcp_changes()
+
+
+async def _apply_mcp_changes():
+    """界面退出后统一应用启停：连接新启用项、断开已禁用项，并重建工具列表。"""
+    mgr = state.chat_instance.mcp_mgr
+    changed = False
+    for info in mgr.list_servers():
+        name = info['name']
+        if info['enabled'] and not info['connected']:
+            if await mgr.connect_server(name):
+                changed = True
+        elif not info['enabled'] and info['connected']:
+            await mgr.disconnect_server(name)
+            changed = True
+    if changed:
+        state.chat_instance._update_tools()
+
+
 def _cmd_changes(_args):
     """查看待处理变更。"""
     from .changes import handle_pending_changes
@@ -214,6 +246,7 @@ _COMMAND_TABLE = {
     get_command_keyword("quit"): _cmd_quit,
     get_command_keyword("tools"): _cmd_tools,
     get_command_keyword("skills"): _cmd_skills,
+    get_command_keyword("mcp"): _cmd_mcp,
     get_command_keyword("changes"): _cmd_changes,
     get_command_keyword("showthinking"): _cmd_showthinking,
     get_command_keyword("effort"): _cmd_effort,
@@ -233,6 +266,10 @@ async def main():
         # 非主线程（嵌入/测试场景）无法接管，保持默认行为
         _prev_int_handler = None
     try:
+        try:
+            await state.chat_instance.mcp_mgr.connect_all()
+        except Exception as e:
+            log.error(f"MCP 初始化失败: {e}")
         while True:
             try:
                 ui.turn_first_output = True
@@ -307,6 +344,11 @@ async def main():
                 print(f"{Fore.RED}{i18n.t('main.error', error=e)}{Style.RESET_ALL}")
                 log.error(f"主循环错误: {e}", exc_info=True)
     finally:
+        # 断开全部 MCP 连接（stdio 会顺带回收自身拉起的子进程）
+        try:
+            await state.chat_instance.mcp_mgr.close_all()
+        except Exception as e:
+            log.warning(f"MCP 关闭失败: {e}")
         # 恢复原 SIGINT handler，避免污染宿主进程（测试/Web 模式）
         if _prev_int_handler is not None:
             try:

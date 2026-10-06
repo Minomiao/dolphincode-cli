@@ -143,7 +143,70 @@ def my_function(context, param1: str) -> str:
 
 - **Skill**: `skill_<技能名>_<函数名>` → 例：`skill_calculator_calculate`
 - **Plugin**: `plugin_<插件名>_<函数名>`
-- **MCP**: `<服务器名>_<工具名>` → 例：`filesystem_read_file`
+- **MCP**: `mcp_<服务器名>_<工具名>` → 例：`mcp_filesystem_read_file`
+
+---
+
+## MCP 服务器配置
+
+MCP 服务器在 `date/mcp_servers.json` 中配置（与 `models.json` 同级）；首次启动时该文件会自动创建为空白内容（`{"mcpServers": {}}`）。结构如下：
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:/data"],
+      "env": { "TOKEN": "${MY_TOKEN}" },
+      "enabled": true
+    },
+    "remote-sse": {
+      "transport": "sse",
+      "url": "https://example.com/sse",
+      "headers": { "Authorization": "Bearer ${REMOTE_TOKEN}" },
+      "enabled": true
+    },
+    "remote-http": {
+      "transport": "http",
+      "url": "https://example.com/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+- `transport` 取值 `stdio`（本地子进程）/ `sse` / `http`（远程）；缺省时按 `command` 推断为 stdio
+- `env` / `headers` 中的 `${VAR}` 从 `.env` 展开，避免明文密钥入库
+- 启动时按配置串行建连：连接成功才注册工具；连接失败只告警并跳过，不阻断启动
+- 断开启停语义：对远程服务器仅释放我方连接，不影响远端服务；对 stdio 会回收程序自身拉起的子进程
+
+---
+
+## /mcp 命令
+
+`/mcp` 独立于技能与工具管理，用于查看与启停 MCP 服务器：
+
+| 命令 | 说明 |
+|------|------|
+| `/mcp` | 列出全部 MCP 服务器及状态（已连接 / 连接失败 / 已禁用），Enter 切换启用状态 |
+
+启停只改写 `mcp_servers.json` 的 `enabled` 字段；退出界面后统一建连新启用项、断开已禁用项，
+并重建工具列表。`/tools` 中仍会列出已连接的 MCP 工具（模型需要可见）。
+
+### AI 安装与控制工具
+
+除远端工具外，MCP 层还提供四个控制工具（不依赖是否已配置服务器）：
+
+| 工具 | 说明 |
+|------|------|
+| `mcp_install` | 把一台服务器配置写入 `date/mcp_servers.json`（stdio 传 command/args/env，sse/http 传 url/headers） |
+| `mcp_uninstall` | 从 `date/mcp_servers.json` 移除某台服务器；若已连接则同时断开并注销其工具 |
+| `mcp_list` | 列出已配置的服务器及状态（传输类型、启用、连接、工具数） |
+| `mcp_reload` | 重新读取配置文件：连接新增/新启用项、断开已禁用/已移除项，运行期即时生效 |
+
+配置文件和 `.env` 位于工作目录之外，AI 的文件工具无法直接改写，因此安装/卸载统一走这些工具。
+`stdskills/mcp-installer` 标准技能（工具名 `stdskill_mcp-installer`）向模型说明完整的安装、列出与卸载流程。
 
 ## user_output 精简显示
 
@@ -178,6 +241,7 @@ return {
 |------|------|
 | `/tools` | 查看所有可用工具 |
 | `/skills` | 管理技能启用/禁用 |
+| `/mcp` | 查看/启停 MCP 服务器 |
 | `/toggle` | 切换单个工具启用状态 |
 
 命令前缀默认为 `/`，可通过 `/set` 修改。

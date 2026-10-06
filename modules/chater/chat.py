@@ -474,6 +474,11 @@ class DolphinChat:
             std_tools = self.std_loader.get_all_tools()
             self.tools.extend(std_tools)
 
+            # 添加 MCP 工具（连接期注册，未连接时为空）
+            self.tools.extend(self.mcp_mgr.get_all_tools())
+            # MCP 控制工具（重载配置），始终提供
+            self.tools.extend(self.mcp_mgr.get_control_tools())
+
         log.debug(f"更新工具列表: 共 {len(self.tools)} 个工具")
     
     def reset_work_directory(self):

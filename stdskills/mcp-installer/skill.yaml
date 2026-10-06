@@ -1,0 +1,137 @@
+name: mcp-installer
+description: Use when the user asks to install, add, connect, enable, configure, list, or uninstall/remove an MCP server (Model Context Protocol), or to expose an MCP server's tools to the assistant. Also applies when a downloaded MCP repository under the work directory needs to be wired up. Prefer performing these tasks programmatically via the mcp_install, mcp_uninstall, mcp_list, and mcp_reload control tools.
+instructions: |
+  # MCP Server Management Guide
+
+  This project loads MCP servers from **`date/mcp_servers.json`** at the project root
+  (not inside the work directory). The file is created blank on first startup. All
+  management is done through four control tools:
+
+  - **`mcp_install`** — write/update one server entry in `date/mcp_servers.json`
+  - **`mcp_uninstall`** — remove one server entry and disconnect it
+  - **`mcp_list`** — list configured servers with their status
+  - **`mcp_reload`** — re-read the file and connect/disconnect servers immediately
+
+  **Do not try to read or write `date/mcp_servers.json` with file_manager.** That file lives
+  outside the work directory, so the file tools will reject it. Use the control tools instead.
+
+  ## Config Schema
+
+  ```json
+  {
+    "mcpServers": {
+      "<name>": {
+        "transport": "stdio",          // stdio | sse | http
+        "command": "npx",              // stdio only
+        "args": ["-y", "@scope/server", "D:/data"],
+        "env": { "TOKEN": "${MY_TOKEN}" },
+        "cwd": "D:/path",              // optional
+        "enabled": true
+      },
+      "<remote>": {
+        "transport": "sse",            // or "http"
+        "url": "https://example.com/sse",
+        "headers": { "Authorization": "Bearer ${REMOTE_TOKEN}" },
+        "enabled": true
+      }
+    }
+  }
+  ```
+
+  Rules:
+  - `transport` is `stdio` (local child process), `sse`, or `http` (remote). It may be
+    omitted when `command` is present (inferred as stdio).
+  - Secrets must be written as `${VAR}` and stored in the project `.env`; never hardcode keys.
+  - `enabled: true` means it connects on startup and is reloaded automatically.
+  - On Windows, `npx` / `uvx` are resolved automatically — pass the bare command.
+
+  ## Install a Downloaded MCP Repository
+
+  Applies when the user points at a local MCP repo (typically under `workplace/mcp/<name>/`).
+
+  ### Steps
+
+  1. **Locate the repo**: list the target directory (e.g. `workplace/mcp`) with file_reader
+     and confirm the repo layout. Look for `README.md`, `package.json`, `pyproject.toml`,
+     `setup.py`, or an existing `.mcp.json` / `claude_desktop_config.json` example.
+  2. **Determine the launch command** (stdio) by reading those files:
+     - Node/TypeScript: `package.json` → `bin` or `scripts`; usually
+       `command="node"`, `args=["<build output>.js"]` or `command="npx"`,
+       `args=["-y", "<package>"]`. Prefer a built file inside the repo if present.
+     - Python: `pyproject.toml` → `[project.scripts]`; usually `command="python"` (or `uv`),
+       `args=["-m", "<module>"]` / `args=["<script>.py"]`.
+     - If the README documents a `command` / `args` example, follow it exactly.
+     - If the server is remote, read the URL (and required headers) instead.
+  3. **Confirm with the user** the server `name` (short, unique) and, when the launch command
+     is ambiguous, which command to use. Never guess silently.
+  4. **Install**: call `mcp_install` with the fields above, for example:
+     ```
+     mcp_install(name="filesystem",
+                 transport="stdio",
+                 command="npx",
+                 args=["-y", "@modelcontextprotocol/server-filesystem", "D:/data"])
+     ```
+     For a remote server:
+     ```
+     mcp_install(name="remote-tools", transport="sse",
+                 url="https://example.com/sse",
+                 headers={"Authorization": "Bearer ${REMOTE_TOKEN}"})
+     ```
+  5. **Activate**: call `mcp_reload`. It connects newly added/enabled servers, disconnects
+     disabled/removed ones, and returns `connected`, `failed`, and the server list.
+  6. **Verify**: check the `mcp_reload` result. On success the server's tools appear as
+     `mcp_<name>_<tool>` on the next conversation turn. If it is in `failed`, read the
+     server error in the logs and fix the command/args/url, then install again and reload.
+  7. **Report to the user**: the server name, transport, its tool count, and the exact
+     `mcp_<name>_<tool>` prefix so they know how to reference the tools.
+
+  ## Enable / Disable Without Reinstalling
+
+  Toggle the `enabled` field by re-calling `mcp_install` for that name (same fields, or with
+  `enabled=false`), then call `mcp_reload`. The user can also do this interactively via the
+  `/mcp` command.
+
+  ## List Configured Servers
+
+  Call `mcp_list` to get every entry from `date/mcp_servers.json` with its transport, enabled
+  flag, connection state, tool count, and last error. Use it to check whether a server is
+  already registered before installing, and to verify the result after install/uninstall.
+
+  ## Uninstall a Server
+
+  Use when the user asks to remove, uninstall, or delete an MCP server (this only affects the
+  MCP registration — it never deletes the server's repository or any installed skill).
+
+  ### Steps
+
+  1. **Confirm the name**: call `mcp_list` first and confirm the exact server name with the user
+     if more than one matches.
+  2. **Remove**: call `mcp_uninstall(name="<name>")`. It deletes the entry from
+     `date/mcp_servers.json` and, if the server is currently connected, disconnects it and
+     unregisters its tools immediately (no separate `mcp_reload` needed).
+  3. **Verify**: call `mcp_list` and confirm the name is gone.
+  4. **Report to the user**: the removed server name; note that its `mcp_<name>_<tool>` tools are
+     no longer available. The repository on disk is left untouched.
+
+  ## Edge Cases
+
+  - **Name already exists**: `mcp_install` overwrites the entry. Confirm with the user before
+    overwriting an existing server.
+  - **Uninstall a name that is not configured**: `mcp_uninstall` returns an error; call
+    `mcp_list` to get the correct name.
+  - **stdio fails to start**: usually a wrong `command`/`args` or a missing build step. Verify
+    the file exists, or build the repo first with `skill_powershell_executor_run_script`.
+  - **Secrets**: put the value in `.env` as `VAR=...`; reference `${VAR}` in `env`/`headers`.
+    The file tools may not reach `.env` — ask the user to set it if needed.
+  - **No MCP repo given, only a name/URL**: ask the user for the source (repo path or URL) and
+    the required credentials before installing.
+  - **Reload reports a failure**: do not retry blindly; fix the config from the error message.
+
+  ## Checklist
+
+  - [ ] Launch command (or URL) confirmed from the repo's own files or README
+  - [ ] `mcp_install` returned `success: true`
+  - [ ] `mcp_reload` returned the server in `connected` and not in `failed`
+  - [ ] `mcp_list` reflects the expected set of servers
+  - [ ] For uninstall: the name is confirmed and `mcp_uninstall` returned `success: true`
+  - [ ] Told the user the server name and its `mcp_<name>_<tool>` tool prefix (or that it was removed)
