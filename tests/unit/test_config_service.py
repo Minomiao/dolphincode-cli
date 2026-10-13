@@ -140,7 +140,7 @@ class TestSetMaxTokens(unittest.TestCase):
         self.assertEqual(self.ctx.config_module.saved, [])
 
     def test_above_maximum_rejected(self):
-        result = config_service.set_max_tokens(self.ctx, config_service.MAX_MAX_TOKENS + 1)
+        result = config_service.set_max_tokens(self.ctx, constants.MAX_MAX_TOKENS + 1)
         self.assertFalse(result["success"])
         self.assertEqual(result["error"], "max")
         self.assertEqual(self.ctx.config_module.saved, [])
@@ -148,7 +148,7 @@ class TestSetMaxTokens(unittest.TestCase):
     def test_boundary_values_accepted(self):
         self.assertTrue(config_service.set_max_tokens(self.ctx, 1)["success"])
         self.assertTrue(config_service.set_max_tokens(
-            self.ctx, config_service.MAX_MAX_TOKENS)["success"])
+            self.ctx, constants.MAX_MAX_TOKENS)["success"])
 
 
 class TestSetCommandPrefix(unittest.TestCase):

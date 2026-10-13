@@ -22,9 +22,9 @@ from modules.bootstrap import init as bootstrap_init
 
 bootstrap_init(PROJECT_ROOT)
 
+from modules.bootstrap import constants
 from modules.functions.file_operation import (
     FileOperation,
-    MAX_FILE_SIZE,
     _check_dpc_restriction,
 )
 
@@ -115,7 +115,7 @@ class TestModifyFileSize(unittest.TestCase):
 
     @patch("modules.functions.file_operation.backup_manager.get_backup_manager", return_value=None)
     def test_oversized_new_content_rejected_without_write(self, _mock_backup):
-        huge = "x" * (MAX_FILE_SIZE + 1)
+        huge = "x" * (constants.MAX_FILE_SIZE + 1)
         result = self.fo.modify_file({**self.base, "new_str": huge})
         self.assertIn("error", result)
         self.assertIn("修改后文件内容过大", result["error"])

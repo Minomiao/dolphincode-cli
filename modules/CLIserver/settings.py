@@ -20,7 +20,7 @@ def settings_mode():
 
     def _run_token():
         """修改最大 Token 数。"""
-        current_max_tokens = state.current_config.get('max_tokens', 18000)
+        current_max_tokens = state.current_config.get('max_tokens', constants.DEFAULT_MAX_TOKENS)
         _console.print()
         _console.print(Panel(Text(i18n.t("settings.max_tokens_panel", current=current_max_tokens)), title=i18n.t("settings.max_tokens"), border_style="cyan"))
         new_value = input(i18n.t("settings.input_max_tokens")).strip()
@@ -65,7 +65,7 @@ def settings_mode():
 
         def _label(item, i):
             if item["key"] == "max_tokens":
-                return f"{i18n.t('settings.max_tokens')}: {state.current_config.get('max_tokens', 18000)}"
+                return f"{i18n.t('settings.max_tokens')}: {state.current_config.get('max_tokens', constants.DEFAULT_MAX_TOKENS)}"
             return f"{i18n.t('settings.command_prefix')}: {state.current_config.get('command_prefix', '/')}"
 
         def _on_enter(item, i):
@@ -217,7 +217,7 @@ def _custom_model_fields():
 
 def _add_custom_model_flow():
     """添加自定义模型：二级字段表单 + 三级字段编辑页。"""
-    from modules.main_server.config import add_custom_model, DEFAULT_CONTEXT_WINDOW
+    from modules.main_server.config import add_custom_model
     from .form import form_nav
 
     values = form_nav(i18n.t("model.add_title"), i18n.t("model.add_subtitle"),
@@ -226,7 +226,7 @@ def _add_custom_model_flow():
         return
 
     name = values["name"]
-    context_window = int(values["context_window"]) if values["context_window"] else DEFAULT_CONTEXT_WINDOW
+    context_window = int(values["context_window"]) if values["context_window"] else constants.DEFAULT_CONTEXT_WINDOW
     vision = values.get("vision") == "y"
     success, error = add_custom_model(name, values["description"] or name,
                                       values["base_url"], values["api_key"], context_window,

@@ -14,11 +14,6 @@ from modules.bootstrap import constants
 
 log = get_logger("Dolphin.context")
 
-# 上下文窗口告警阈值
-_WARN_THRESHOLD = constants.WARN_THRESHOLD
-_HIGH_THRESHOLD = constants.HIGH_THRESHOLD
-_CRITICAL_THRESHOLD = constants.CRITICAL_THRESHOLD
-
 
 def _filter_sendable(source: list) -> list:
     """过滤 _send=False 的消息，保持工具调用与回复成对完整。
@@ -198,11 +193,11 @@ class ContextManager:
         ratio = estimated / context_window
 
         level = None
-        if ratio >= _CRITICAL_THRESHOLD:
+        if ratio >= constants.CRITICAL_THRESHOLD:
             level = "critical"
-        elif ratio >= _HIGH_THRESHOLD:
+        elif ratio >= constants.HIGH_THRESHOLD:
             level = "high"
-        elif ratio >= _WARN_THRESHOLD:
+        elif ratio >= constants.WARN_THRESHOLD:
             level = "warn"
 
         if level is not None:
@@ -280,23 +275,24 @@ class ContextManager:
         """估算消息列表的 token 数量 (近似算法)。
 
         中文约 1 字 = 1.5 token，英文约 1 词 ≈ 1.3 token。
-        这里采用粗略平均: 字符数 / 3 作为 token 数估算。
+        这里采用粗略平均: 字符数 / TOKEN_CHARS_PER_TOKEN 作为 token 数估算。
         """
+        per_token = constants.TOKEN_CHARS_PER_TOKEN
         total = 0
         for msg in messages:
             content = msg.get("content", "")
             if isinstance(content, str):
                 # 粗略估算: 每 3 个字符 ≈ 1 token
-                total += max(1, len(content) // 3)
+                total += max(1, len(content) // per_token)
             if msg.get("tool_calls"):
                 for tc in msg["tool_calls"]:
                     fn = tc.get("function", {})
                     args = fn.get("arguments", "")
                     name = fn.get("name", "")
-                    total += max(1, len(args) // 3)
-                    total += max(1, len(name) // 3)
+                    total += max(1, len(args) // per_token)
+                    total += max(1, len(name) // per_token)
             if msg.get("reasoning_content"):
                 rc = msg["reasoning_content"]
                 if isinstance(rc, str):
-                    total += max(1, len(rc) // 3)
+                    total += max(1, len(rc) // per_token)
         return total

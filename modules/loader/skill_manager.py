@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 from modules.logger import get_logger
 from modules import bootstrap as app_paths
+from modules.bootstrap import constants
 from .base_loader import BaseSkillLoader
 
 log = get_logger("Dolphin.skill_manager")
@@ -20,7 +21,7 @@ class SkillManager(BaseSkillLoader):
         self._load_skills()
 
     def _tool_prefix(self) -> str:
-        return "skill_"
+        return constants.TOOL_PREFIX_SKILL
 
     def _config_section(self) -> str:
         return "skills"

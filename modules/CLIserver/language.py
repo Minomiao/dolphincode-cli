@@ -4,6 +4,7 @@ import shutil
 from rich.console import Console
 
 from modules.logger import get_logger
+from modules.bootstrap import constants
 from . import i18n
 from . import console_input
 from .state import state
@@ -54,7 +55,7 @@ def _list_window_size():
     try:
         lines = shutil.get_terminal_size().lines
     except (OSError, ValueError):
-        lines = 24
+        lines = constants.TERMINAL_FALLBACK_ROWS
     return max(4, min(18, lines - 12))
 
 

@@ -1,7 +1,9 @@
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
+
 from modules import bootstrap as app_paths
+from modules.bootstrap import constants
 
 
 def _ensure_log_dir() -> None:
@@ -23,7 +25,7 @@ def setup_logger(name="Dolphin", level=logging.DEBUG):
 
     # 按天轮转：跨天自动切换文件，旧日志保留 backupCount 份
     file_handler = TimedRotatingFileHandler(
-        log_filepath, when="midnight", encoding='utf-8', backupCount=7
+        log_filepath, when="midnight", encoding='utf-8', backupCount=constants.LOG_BACKUP_COUNT
     )
     file_handler.setLevel(level)
 
@@ -52,7 +54,7 @@ def get_thinking_logger():
         think_filepath = os.path.join(app_paths.LOG_DIR, "think.log")
 
         think_handler = TimedRotatingFileHandler(
-            think_filepath, when="midnight", encoding='utf-8', backupCount=7
+            think_filepath, when="midnight", encoding='utf-8', backupCount=constants.LOG_BACKUP_COUNT
         )
         think_handler.setLevel(logging.DEBUG)
         think_handler.setFormatter(logging.Formatter('[%(asctime)s] 思考过程:\n%(message)s'))

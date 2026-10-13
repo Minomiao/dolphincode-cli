@@ -16,21 +16,12 @@ from modules.functions.command_cache import get_command_cache_manager
 
 log = get_logger("Dolphin.powershell_manager")
 
-MAX_SCRIPT_LENGTH = constants.MAX_SCRIPT_LENGTH
-MAX_OUTPUT_LENGTH = constants.MAX_OUTPUT_LENGTH
-MAX_OUTPUT_LINES = constants.MAX_OUTPUT_LINES
-DEFAULT_TIMEOUT = constants.DEFAULT_TIMEOUT
-DEFAULT_WAIT_TIME = constants.DEFAULT_WAIT_TIME
-
 _running_processes: Dict[str, Dict[str, Any]] = {}
 _process_counter = 0
 # 后台自动清理任务集合：保存引用避免任务被 GC 时产生 "Task was destroyed" 警告
 _bg_cleanup_tasks: set = set()
 # 退出信号是否已处理，防止重复触发
 _shutdown_started = False
-
-# 后台进程最长存活时间（秒），超时自动清理防止泄漏
-MAX_BACKGROUND_LIFETIME = constants.MAX_BACKGROUND_LIFETIME
 
 
 def init():
@@ -67,7 +58,7 @@ def _get_work_dir():
         return 'workplace'
 
 
-async def _read_stream(stream: asyncio.StreamReader, buffer: list, max_chars: int = MAX_OUTPUT_LENGTH):
+async def _read_stream(stream: asyncio.StreamReader, buffer: list, max_chars: int = constants.MAX_OUTPUT_LENGTH):
     """读取流内容到缓冲区，最多读取 max_chars 个字符。"""
     total = 0
     while total < max_chars:
@@ -151,7 +142,7 @@ async def _wait_for_task_with_timeout(task: asyncio.Task, name: str, command_id:
         return
 
 
-async def _auto_kill_background(command_id: str, delay: int = MAX_BACKGROUND_LIFETIME) -> None:
+async def _auto_kill_background(command_id: str, delay: int = constants.MAX_BACKGROUND_LIFETIME) -> None:
     """后台进程超时自动清理，防止进程/任务永久泄漏"""
     await asyncio.sleep(delay)
     if command_id not in _running_processes:
@@ -184,7 +175,7 @@ def _format_result_output(stdout: str, stderr: str, exit_code: Optional[int]) ->
     return f"{stdout}{separator}[stderr]\n{stderr}"
 
 
-async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time: int = DEFAULT_WAIT_TIME) -> Dict[str, Any]:
+async def execute_script(script: str, timeout: int = constants.DEFAULT_TIMEOUT, wait_time: int = constants.DEFAULT_WAIT_TIME) -> Dict[str, Any]:
     global _process_counter
     _process_counter += 1
     command_id = f"dps{_process_counter:04d}"
@@ -228,10 +219,10 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
 
             stdout = ''.join(stdout_buffer)
             stderr = ''.join(stderr_buffer)
-            if len(stdout) > MAX_OUTPUT_LENGTH:
-                stdout = stdout[:MAX_OUTPUT_LENGTH] + f"\n... (输出已截断)"
-            if len(stderr) > MAX_OUTPUT_LENGTH:
-                stderr = stderr[:MAX_OUTPUT_LENGTH] + f"\n... (stderr 已截断)"
+            if len(stdout) > constants.MAX_OUTPUT_LENGTH:
+                stdout = stdout[:constants.MAX_OUTPUT_LENGTH] + f"\n... (输出已截断)"
+            if len(stderr) > constants.MAX_OUTPUT_LENGTH:
+                stderr = stderr[:constants.MAX_OUTPUT_LENGTH] + f"\n... (stderr 已截断)"
             merged_output = _format_result_output(stdout, stderr, process.returncode)
 
             _close_transports(proc_info)
@@ -293,7 +284,7 @@ async def execute_script(script: str, timeout: int = DEFAULT_TIMEOUT, wait_time:
         return {"error": f"命令执行失败: {str(e)}", "command_id": command_id, "output": ""}
 
 
-async def check_script(command_id: str, wait_time: int = DEFAULT_WAIT_TIME) -> Dict[str, Any]:
+async def check_script(command_id: str, wait_time: int = constants.DEFAULT_WAIT_TIME) -> Dict[str, Any]:
     # 先检查缓存（使用新的缓存管理器，支持 TTL）
     cached_result = get_command_cache_manager().get(command_id)
     if cached_result is not None:
@@ -323,8 +314,8 @@ async def check_script(command_id: str, wait_time: int = DEFAULT_WAIT_TIME) -> D
         merged_output = _format_result_output(stdout, stderr, return_code)
 
         lines = merged_output.split('\n')
-        if len(lines) > MAX_OUTPUT_LINES:
-            merged_output = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
+        if len(lines) > constants.MAX_OUTPUT_LINES:
+            merged_output = '\n'.join(lines[-constants.MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
 
         _close_transports(proc_info)
         # 使用新的缓存管理器
@@ -351,8 +342,8 @@ async def check_script(command_id: str, wait_time: int = DEFAULT_WAIT_TIME) -> D
         merged_output = _format_result_output(stdout, stderr, None)
 
         lines = merged_output.split('\n')
-        if len(lines) > MAX_OUTPUT_LINES:
-            merged_output = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
+        if len(lines) > constants.MAX_OUTPUT_LINES:
+            merged_output = '\n'.join(lines[-constants.MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
 
         elapsed = time.time() - check_start
         log.info(f"命令仍在运行: command_id={command_id}, 已耗时={elapsed:.3f}s")
@@ -393,8 +384,8 @@ def kill_command(command_id: str) -> Dict[str, Any]:
     merged_output = _format_result_output(stdout, stderr, exit_code)
 
     lines = merged_output.split('\n')
-    if len(lines) > MAX_OUTPUT_LINES:
-        merged_output = '\n'.join(lines[-MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
+    if len(lines) > constants.MAX_OUTPUT_LINES:
+        merged_output = '\n'.join(lines[-constants.MAX_OUTPUT_LINES:]) + f"\n... (输出已截断，共 {len(lines)} 行)"
 
     # 使用新的缓存管理器
     get_command_cache_manager().add(command_id, {

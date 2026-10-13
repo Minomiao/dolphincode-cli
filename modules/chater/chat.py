@@ -20,11 +20,6 @@ from modules.logger import get_logger, log_thinking
 
 log = get_logger("Dolphin.chat")
 
-# 工具迭代次数限制（上限/初始/扩展步长）
-MAX_HARD_LIMIT = constants.STREAM_MAX_HARD_LIMIT
-INITIAL_MAX = constants.STREAM_INITIAL_MAX
-EXTEND_BY = constants.STREAM_EXTEND_BY
-
 def format_tool_result(result_str):
     """格式化工具返回结果，使其更易读"""
     try:
@@ -71,8 +66,11 @@ def format_tool_result(result_str):
 
 def _parse_display_name(tool_name: str, skill_mgr=None, plugin_loader=None) -> str:
     """将 tool_name 解析为 'skill.func' 格式的显示名，用于预览。"""
-    if tool_name.startswith("skill_"):
-        rest = tool_name[6:]
+    skill_prefix = constants.TOOL_PREFIX_SKILL
+    plugin_prefix = constants.TOOL_PREFIX_PLUGIN
+    std_prefix = constants.TOOL_PREFIX_STD_SKILL
+    if tool_name.startswith(skill_prefix):
+        rest = tool_name[len(skill_prefix):]
         parts = rest.split("_")
         if skill_mgr:
             for i in range(len(parts), 0, -1):
@@ -81,8 +79,8 @@ def _parse_display_name(tool_name: str, skill_mgr=None, plugin_loader=None) -> s
                     func = "_".join(parts[i:])
                     return f"{possible_skill}.{func}"
         return rest
-    elif tool_name.startswith("plugin_"):
-        rest = tool_name[7:]
+    elif tool_name.startswith(plugin_prefix):
+        rest = tool_name[len(plugin_prefix):]
         parts = rest.split("_")
         if plugin_loader:
             for i in range(len(parts), 0, -1):
@@ -91,26 +89,26 @@ def _parse_display_name(tool_name: str, skill_mgr=None, plugin_loader=None) -> s
                     func = "_".join(parts[i:])
                     return f"{possible_skill}.{func}"
         return rest
-    elif tool_name.startswith("stdskill_"):
-        return tool_name[len("stdskill_"):]
+    elif tool_name.startswith(std_prefix):
+        return tool_name[len(std_prefix):]
     else:
         return tool_name
 
 
 class DolphinChat:
-    def __init__(self, model=constants.DEFAULT_MODEL, temperature=0.7, max_tokens=None, enable_tools=True, callback=None):
+    def __init__(self, model=constants.DEFAULT_MODEL, temperature=constants.DEFAULT_TEMPERATURE, max_tokens=None, enable_tools=True, callback=None):
         self.model = model
         self.temperature = temperature
-        
+
         # 缓存配置，避免重复读取文件
         _cfg = config.load_config()
-        
-        # 从配置中读取 max_tokens，如果没有提供或配置中没有，则使用默认值 18000
+
+        # 从配置中读取 max_tokens，如果没有提供或配置中没有，则使用默认值
         if max_tokens is None:
-            max_tokens = _cfg.get('max_tokens', 18000)
-        
+            max_tokens = _cfg.get('max_tokens', constants.DEFAULT_MAX_TOKENS)
+
         self.max_tokens = max_tokens
-        self.effort_level = "fine"  # fine / normal / high
+        self.effort_level = constants.DEFAULT_EFFORT_LEVEL  # fine / normal / high
         self.messages = []
         self.context = ContextManager(self.get_system_prompt, self.get_context_prompt)
         # 多模态：发送边界转换器与视觉能力由 chat 层注入
@@ -132,7 +130,7 @@ class DolphinChat:
         self.backup_mgr = backup_manager.get_backup_manager()
 
         # 上下文整理冷却：记录上次整理时的轮数，避免高频触发
-        self._compact_last_turn = -10**9
+        self._compact_last_turn = constants.COOLDOWN_SENTINEL
         # 自动整理开关：headless 调用（chat_ai）需关闭，避免整理自身再次触发整理
         self.auto_compact_enabled = True
 
@@ -164,12 +162,12 @@ class DolphinChat:
         self._current_tool_task = None
         
         # 工具分发链: (谓词, 处理器) 对 —— 前缀由各加载器在注册时拼定，
-        # 互不为前缀关系；mcp_ 为 MCP 工具统一注册前缀
+        # 互不为前缀关系；TOOL_PREFIX_MCP 为 MCP 工具统一注册前缀
         self._tool_dispatch = [
-            (lambda n: n.startswith("skill_"), self.skill_mgr.call_tool),
-            (lambda n: n.startswith("plugin_"), self.plugin_loader.call_tool),
-            (lambda n: n.startswith("stdskill_"), self.std_loader.call_tool),
-            (lambda n: n.startswith("mcp_"), self.mcp_mgr.call_tool),
+            (lambda n: n.startswith(constants.TOOL_PREFIX_SKILL), self.skill_mgr.call_tool),
+            (lambda n: n.startswith(constants.TOOL_PREFIX_PLUGIN), self.plugin_loader.call_tool),
+            (lambda n: n.startswith(constants.TOOL_PREFIX_STD_SKILL), self.std_loader.call_tool),
+            (lambda n: n.startswith(constants.TOOL_PREFIX_MCP), self.mcp_mgr.call_tool),
         ]
 
         # 确认请求分发链: (谓词, 处理器) 对
@@ -181,7 +179,7 @@ class DolphinChat:
         ]
         
         # 从配置读取默认工作目录
-        self.default_work_directory = _cfg.get('work_directory', 'workplace')
+        self.default_work_directory = _cfg.get('work_directory', constants.DEFAULT_WORK_DIR)
         self.current_work_directory = self.default_work_directory
         request_manager.reset_ai_work_directory()
 
@@ -236,7 +234,7 @@ class DolphinChat:
             return
         conv_folder = os.path.join(conversation.CONVERSATIONS_DIR, self._save_dir_id, self._save_conv_id)
         os.makedirs(conv_folder, exist_ok=True)
-        self._stream_buffer_path = os.path.join(conv_folder, "stream.jsonl")
+        self._stream_buffer_path = os.path.join(conv_folder, constants.STREAM_BUFFER_FILENAME)
         self._stream_buffer_fh = open(self._stream_buffer_path, 'a', encoding='utf-8')
 
     def _append_stream_chunk(self, kind, text):
@@ -362,7 +360,7 @@ class DolphinChat:
         内容块和思考块分别拼回 content 与 reasoning_content，
         恢复后立即写盘并删除缓冲文件，保证"显示过的内容不丢失"。
         """
-        path = os.path.join(conversation.CONVERSATIONS_DIR, dir_id, conv_id, "stream.jsonl")
+        path = os.path.join(conversation.CONVERSATIONS_DIR, dir_id, conv_id, constants.STREAM_BUFFER_FILENAME)
         if not os.path.exists(path):
             return messages
 
@@ -628,7 +626,7 @@ class DolphinChat:
             log.error(f"工具执行失败: {tool_name}, 耗时={elapsed:.3f}s, 错误: {str(e)}")
             return error_msg, False, None
     
-    async def _execute_powershell_script(self, script: str, timeout: int = 30, wait_time: int = 10) -> dict:
+    async def _execute_powershell_script(self, script: str, timeout: int = constants.DEFAULT_TIMEOUT, wait_time: int = constants.DEFAULT_WAIT_TIME) -> dict:
         return await powershell_manager.execute_script(script, timeout, wait_time)
 
     def _sync_work_directory(self, result: dict, tool_name: str) -> None:
@@ -642,8 +640,8 @@ class DolphinChat:
 
     async def _handle_auto_execute(self, result_dict: dict) -> tuple:
         """处理 auto_execute 请求，直接执行 PowerShell 脚本"""
-        ps_timeout = result_dict.get('timeout', 30)
-        ps_wait = result_dict.get('wait_time', 10)
+        ps_timeout = result_dict.get('timeout', constants.DEFAULT_TIMEOUT)
+        ps_wait = result_dict.get('wait_time', constants.DEFAULT_WAIT_TIME)
         ps_result = await self._execute_powershell_script(result_dict['script'], ps_timeout, ps_wait)
         return json.dumps(ps_result, ensure_ascii=False), False, None
 
@@ -699,8 +697,8 @@ class DolphinChat:
         await self._call_callback(events.EVENT_OPERATION_CONFIRMED, {})
 
         if result_dict.get('action') == constants.ACTION_RUN_POWERSHELL_SCRIPT and result_dict.get('script'):
-            ps_timeout = result_dict.get('timeout', 30)
-            ps_wait = result_dict.get('wait_time', 10)
+            ps_timeout = result_dict.get('timeout', constants.DEFAULT_TIMEOUT)
+            ps_wait = result_dict.get('wait_time', constants.DEFAULT_WAIT_TIME)
             ps_result = await self._execute_powershell_script(result_dict['script'], ps_timeout, ps_wait)
             return json.dumps(ps_result, ensure_ascii=False), False, None
 
@@ -801,7 +799,7 @@ class DolphinChat:
                 if isinstance(img, dict) and img.get("path"):
                     pending_images.append({
                         "path": img["path"],
-                        "media_type": img.get("media_type") or "image/png",
+                        "media_type": img.get("media_type") or constants.DEFAULT_IMAGE_MEDIA_TYPE,
                     })
 
             if skip:
@@ -851,7 +849,7 @@ class DolphinChat:
         kwargs.setdefault("extra_body", {})
         kwargs["extra_body"]["thinking"] = {"type": "enabled"}
 
-    async def chat(self, user_input, max_tool_rounds: int = 10, images=None):
+    async def chat(self, user_input, max_tool_rounds: int = constants.DEFAULT_MAX_TOOL_ROUNDS, images=None):
         """发起一次非流式对话，返回最终回复文本。
 
         模型请求工具时持续执行工具回合，直到模型给出最终回复或达到 max_tool_rounds 上限。
@@ -1122,14 +1120,14 @@ class DolphinChat:
 
     async def _run_tool_iterations(self, kwargs: dict) -> None:
         """工具调用迭代循环：执行工具后继续请求模型，直至无工具调用或达到迭代上限。"""
-        max_iterations = INITIAL_MAX
+        max_iterations = constants.STREAM_INITIAL_MAX
         iteration = 1
 
-        while iteration < min(max_iterations, MAX_HARD_LIMIT):
+        while iteration < min(max_iterations, constants.STREAM_MAX_HARD_LIMIT):
             # 迭代间检查点：用户中断后不再发起下一轮流式请求
             self._check_cancelled()
             iteration += 1
-            log.debug(f"工具调用迭代 {iteration}/{max_iterations} (hard limit: {MAX_HARD_LIMIT})")
+            log.debug(f"工具调用迭代 {iteration}/{max_iterations} (hard limit: {constants.STREAM_MAX_HARD_LIMIT})")
 
             kwargs["messages"] = self.context.prepare_messages(self.messages)
             kwargs["stream"] = True
@@ -1146,16 +1144,16 @@ class DolphinChat:
                 await self._run_tool_calls(tool_calls)
 
                 if iteration >= max_iterations:
-                    if iteration >= MAX_HARD_LIMIT:
+                    if iteration >= constants.STREAM_MAX_HARD_LIMIT:
                         break
                     log.info(f"达到当前迭代上限 {max_iterations}，询问用户是否继续")
                     result = await self._call_callback(events.EVENT_MAX_ITERATIONS_REACHED, {
                         'iterations': iteration,
                         'max_iterations': max_iterations,
-                        'hard_limit': MAX_HARD_LIMIT
+                        'hard_limit': constants.STREAM_MAX_HARD_LIMIT
                     })
                     if result == 'y':
-                        max_iterations = min(max_iterations + EXTEND_BY, MAX_HARD_LIMIT)
+                        max_iterations = min(max_iterations + constants.STREAM_EXTEND_BY, constants.STREAM_MAX_HARD_LIMIT)
                         log.info(f"用户确认续期，新上限: {max_iterations}")
                         continue
                     else:

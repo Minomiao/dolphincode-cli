@@ -4,6 +4,8 @@
 避免在 main.py 中散布大量全局变量。
 """
 
+from modules.bootstrap import constants
+
 
 class UIState:
     """封装 UI 运行时状态。"""
@@ -34,8 +36,8 @@ class AppState:
         self.current_conversation = None
         self.current_dir_id = None
         self.current_conv_id = None
-        self.show_thinking = False
-        self.effort_level = "fine"
+        self.show_thinking = constants.DEFAULT_SHOW_THINKING
+        self.effort_level = constants.DEFAULT_EFFORT_LEVEL
 
         # 懒加载的模块引用（由 main.py 在启动进度条阶段填充）
         self.config = None

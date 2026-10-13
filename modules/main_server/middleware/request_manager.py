@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 from typing import Dict, Any, Optional, Awaitable
+from modules.bootstrap import constants
 from modules.logger import get_logger
 
 log = get_logger("Dolphin.request_manager")
@@ -11,7 +12,7 @@ log = get_logger("Dolphin.request_manager")
 _sync_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 
-def _run_async(coro: Awaitable, timeout: float = 120.0) -> Any:
+def _run_async(coro: Awaitable, timeout: float = constants.API_TIMEOUT) -> Any:
     """在同步或异步上下文中安全执行协程。
 
     - 已在事件循环内运行时：将协程提交到独立线程的独立事件循环执行，

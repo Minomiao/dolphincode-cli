@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from modules.bootstrap import constants
 from modules.logger import get_logger
 from .registry import (
     _find_file_id_by_path,
@@ -284,7 +285,7 @@ def revert_all_changes(dir_id: str, conv_id: str) -> Dict[str, Any]:
 
     for file_id, file_info in list(registry.get("backups", {}).items()):
         file_path = file_info.get("file_path", "")
-        work_dir = file_info.get("work_dir", "workplace")
+        work_dir = file_info.get("work_dir", constants.DEFAULT_WORK_DIR)
         full_path = Path(work_dir) / file_path if file_path else None
 
         original = file_info.get("backup_files", [])

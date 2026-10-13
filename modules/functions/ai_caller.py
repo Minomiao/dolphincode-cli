@@ -131,13 +131,13 @@ async def chat_ai(
     *,
     system_prompt: str | None = None,
     history: list | None = None,
-    temperature: float = 0.7,
+    temperature: float = constants.DEFAULT_TEMPERATURE,
     max_tokens: int | None = None,
-    effort_level: str = "fine",
+    effort_level: str = constants.DEFAULT_EFFORT_LEVEL,
     enable_tools: bool = True,
     allowed_tools: list | None = None,
     work_directory: str | None = None,
-    max_tool_rounds: int = 10,
+    max_tool_rounds: int = constants.DEFAULT_MAX_TOOL_ROUNDS,
     reuse_history_prefix: bool = False,
 ) -> dict:
     """发起一次非交互式 AI 对话，返回完整结果 dict。

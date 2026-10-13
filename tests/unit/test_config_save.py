@@ -23,6 +23,7 @@ from modules.bootstrap import init as bootstrap_init
 
 bootstrap_init(PROJECT_ROOT)
 
+from modules.bootstrap import constants
 from modules.main_server import config
 
 
@@ -169,7 +170,7 @@ class TestSaveConfigApiKeyOverride(unittest.TestCase):
             encoding="utf-8")
         self.assertEqual(config.get_context_window("my-model"), 64000)
         self.assertEqual(config.get_context_window("deepseek-flash"), 1000000)
-        self.assertEqual(config.get_context_window("unknown-model"), config.DEFAULT_CONTEXT_WINDOW)
+        self.assertEqual(config.get_context_window("unknown-model"), constants.DEFAULT_CONTEXT_WINDOW)
 
     def test_user_edit_to_builtin_entry_wins(self):
         """已存在的条目以文件为准，不被内置种子覆盖。"""

@@ -11,6 +11,7 @@
 import os
 
 from modules import bootstrap
+from modules.bootstrap import constants
 from modules.logger import get_logger
 
 log = get_logger("Dolphin.conversation_service")
@@ -33,7 +34,7 @@ def _save_current(ctx):
 def list_conversations(ctx):
     """获取当前工作目录下的对话列表（.dpc 中的 [{id, name}]）。"""
     from modules.chater import dpc_manager
-    work_dir = ctx.current_config.get('work_directory', 'workplace')
+    work_dir = ctx.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
     return dpc_manager.get_conversations(work_dir)
 
 
@@ -45,7 +46,7 @@ def create_conversation(ctx, new_name):
     """
     from modules.chater import dpc_manager, conversation
 
-    work_dir = ctx.current_config.get('work_directory', 'workplace')
+    work_dir = ctx.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
     if dpc_manager.get_id_by_name(work_dir, new_name):
         log.warning(f"新建对话被阻止：同名对话已存在 '{new_name}'")
         return {"success": False, "error": "duplicate"}
@@ -89,7 +90,7 @@ def activate_conversation(ctx, conv_name):
         {success: False, error: 'not_found'/'load_failed'}
     """
     from modules.chater import dpc_manager
-    work_dir = ctx.current_config.get('work_directory', 'workplace')
+    work_dir = ctx.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
     conv_id = dpc_manager.get_id_by_name(work_dir, conv_name)
     if not conv_id:
         log.warning(f"对话不存在: {conv_name}")
@@ -106,7 +107,7 @@ def activate_conversation_by_id(ctx, conv_id, conv_name):
     Returns:
         {success, conv_name, dir_id, conv_id} 或 {success: False, error: 'load_failed'}
     """
-    work_dir = ctx.current_config.get('work_directory', 'workplace')
+    work_dir = ctx.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
     result = _activate(ctx, work_dir, conv_id, conv_name)
     if not result:
         return {"success": False, "error": "load_failed"}
@@ -145,7 +146,7 @@ def open_work_directory(ctx, path, create_if_missing=False):
             log.warning(f"创建工作目录失败: {e}")
             return {"success": False, "action": "create_failed", "error": str(e)}
 
-    old_work_directory = ctx.current_config.get('work_directory', 'workplace')
+    old_work_directory = ctx.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
     skills_reloaded = False
     if path != old_work_directory:
         ctx.current_config['work_directory'] = path

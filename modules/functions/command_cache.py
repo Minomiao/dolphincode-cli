@@ -8,12 +8,6 @@ from modules.bootstrap import constants
 
 log = get_logger("Dolphin.command_cache")
 
-# 缓存配置
-COMMAND_CACHE_TTL = constants.COMMAND_CACHE_TTL_SECONDS
-COMMAND_CACHE_PERSIST_DIR = constants.COMMAND_CACHE_PERSIST_DIR
-COMMAND_CACHE_PERSIST_TTL = constants.COMMAND_CACHE_PERSIST_TTL_SECONDS
-MAX_COMMAND_CACHE_SIZE = constants.MAX_COMMAND_CACHE_SIZE
-
 
 class CommandCacheManager:
     """命令缓存管理器：支持 TTL、自动销毁、持久化"""
@@ -28,13 +22,13 @@ class CommandCacheManager:
         try:
             from modules import bootstrap as app_paths
             # 使用 DATE_DIR 而不是 PROJECT_ROOT
-            persist_path = Path(app_paths.DATE_DIR) / COMMAND_CACHE_PERSIST_DIR
+            persist_path = Path(app_paths.DATE_DIR) / constants.COMMAND_CACHE_PERSIST_DIR
             persist_path.mkdir(parents=True, exist_ok=True)
             return persist_path
         except Exception as e:
             log.warning(f"无法创建持久化目录: {e}")
             # Fallback: 使用当前工作目录下的 date/command_cache
-            return Path("date") / COMMAND_CACHE_PERSIST_DIR
+            return Path("date") / constants.COMMAND_CACHE_PERSIST_DIR
 
     def _get_persist_file(self, command_id: str) -> Path:
         """获取命令的持久化文件路径"""
@@ -46,15 +40,15 @@ class CommandCacheManager:
         cache_entry = {
             **data,
             "cached_at": cached_at,
-            "expires_at": cached_at + COMMAND_CACHE_TTL
+            "expires_at": cached_at + constants.COMMAND_CACHE_TTL_SECONDS
         }
 
         # 检查内存缓存大小，超过限制时清理最旧的
-        if len(self._memory_cache) >= MAX_COMMAND_CACHE_SIZE:
+        if len(self._memory_cache) >= constants.MAX_COMMAND_CACHE_SIZE:
             self._cleanup_oldest_memory_cache()
 
         self._memory_cache[command_id] = cache_entry
-        log.debug(f"缓存已添加: {command_id}, TTL={COMMAND_CACHE_TTL}秒")
+        log.debug(f"缓存已添加: {command_id}, TTL={constants.COMMAND_CACHE_TTL_SECONDS}秒")
 
     def get(self, command_id: str) -> Optional[Dict[str, Any]]:
         """获取缓存（检查 TTL）"""
@@ -127,7 +121,7 @@ class CommandCacheManager:
         """将过期条目转储到持久化存储"""
         try:
             # 更新过期时间为持久化 TTL
-            entry['expires_at'] = time.time() + COMMAND_CACHE_PERSIST_TTL
+            entry['expires_at'] = time.time() + constants.COMMAND_CACHE_PERSIST_TTL_SECONDS
             persist_file = self._get_persist_file(command_id)
 
             with open(persist_file, 'w', encoding='utf-8') as f:
@@ -193,9 +187,9 @@ class CommandCacheManager:
         return {
             "memory_cache_count": len(self._memory_cache),
             "persist_cache_count": len(list(self._persist_dir.glob("*.json"))),
-            "ttl_seconds": COMMAND_CACHE_TTL,
-            "persist_ttl_seconds": COMMAND_CACHE_PERSIST_TTL,
-            "max_memory_cache_size": MAX_COMMAND_CACHE_SIZE
+            "ttl_seconds": constants.COMMAND_CACHE_TTL_SECONDS,
+            "persist_ttl_seconds": constants.COMMAND_CACHE_PERSIST_TTL_SECONDS,
+            "max_memory_cache_size": constants.MAX_COMMAND_CACHE_SIZE
         }
 
 

@@ -10,6 +10,35 @@ DEFAULT_BASE_URL = "https://api.deepseek.com"
 # 内置（默认）模型共用的密钥变量名；自定义模型各自派生独立的变量名
 DEFAULT_API_KEY_ENV = "QUICKAI_API_KEY"
 
+# ===== 生成参数默认值 =====
+DEFAULT_MAX_TOKENS = 18000        # 默认输出 token 上限
+MIN_MAX_TOKENS = 1                # max_tokens 允许的最小值
+MAX_MAX_TOKENS = 393216           # max_tokens 允许的最大值（同内置模型 max_output_tokens）
+DEFAULT_TEMPERATURE = 0.7         # 普通对话默认采样温度
+DEFAULT_MAX_TOOL_ROUNDS = 10      # 默认工具调用轮数上限
+# 思考深度（reasoning effort）允许取值
+VALID_EFFORT_LEVELS = ("fine", "normal", "high")
+COMMAND_PREFIX_MAX_LEN = 10       # 自定义命令前缀的最大长度
+
+# ===== 环境变量名 =====
+ENV_API_KEY = DEFAULT_API_KEY_ENV
+ENV_BASE_URL = "QUICKAI_BASE_URL"
+ENV_WORK_DIRECTORY = "QUICKAI_WORK_DIRECTORY"
+
+# ===== 工具名前缀 =====
+# 不同来源的工具统一带前缀注册，调用时按前缀分发到对应加载器
+TOOL_PREFIX_SKILL = "skill_"
+TOOL_PREFIX_PLUGIN = "plugin_"
+TOOL_PREFIX_STD_SKILL = "stdskill_"
+TOOL_PREFIX_MCP = "mcp_"
+
+# ===== Token 估算 =====
+# 字符数粗略估算 token 数的除数（估算值，非精算）
+TOKEN_CHARS_PER_TOKEN = 3
+
+# ===== 会话文件名 =====
+STREAM_BUFFER_FILENAME = "stream.jsonl"  # 流式生成缓冲文件
+
 # ===== 文件操作限制 =====
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 # MAX_LINE_COUNT 采用 100 行冗余设计：对外声明 1000 行，实际限制 1100 行
@@ -121,6 +150,33 @@ WARN_THRESHOLD = 0.70   # 70%: 提醒用户
 HIGH_THRESHOLD = 0.85   # 85%: 建议清理
 CRITICAL_THRESHOLD = 0.95  # 95%: 强烈建议清理
 
+# ===== 配置默认值（config.json 缺省时的兜底）=====
+DEFAULT_CONTEXT_WINDOW = 128000   # 未知模型的默认上下文窗口
+DEFAULT_WORK_DIR = "workplace"    # 默认工作目录（相对 date 目录）
+DEFAULT_LANGUAGE = "zh-CN"        # 默认界面语言
+DEFAULT_COMMAND_PREFIX = "/"      # 默认命令前缀
+DEFAULT_EFFORT_LEVEL = "fine"     # 默认思考深度（fine / normal / high）
+DEFAULT_SHOW_THINKING = False     # 默认隐藏思考过程
+
+# ===== 后台命令冷却 =====
+COOLDOWN_SENTINEL = -10**9  # 未设置冷却截止时间的哨兵值（time.time() 恒大于它）
+
+# ===== 文件内容模糊匹配（file_operation）=====
+FUZZY_MATCH_THRESHOLD = 0.95   # 内容相似度命中阈值
+FUZZY_MIN_TARGET_LEN = 10      # 进入模糊匹配的目标串最短长度
+FUZZY_MARGIN_RATIO = 0.2       # 扫描窗口边距比例（相对目标串长度）
+FUZZY_MARGIN_MIN = 20          # 扫描窗口边距下限（字符）
+FUZZY_STEP_DIVISOR = 4         # 扫描步长 = 窗口大小 // 该除数
+
+# ===== 对话预览 =====
+CONVERSATION_PREVIEW_LINES = 30  # 会话列表中显示的开头行数
+
+# ===== 终端兜底 =====
+TERMINAL_FALLBACK_ROWS = 24    # 无法获取终端高度时的兜底行数
+
+# ===== 日志 =====
+LOG_BACKUP_COUNT = 7           # 日志按天轮转保留份数
+
 # ===== 上下文整理（compaction）=====
 # 流程：先归档（无头 AI 写文档）→ 选择 keep/delete（一次 user 到下一次 user 为一组）
 # → 未选择的组统一摘要（_display=False，只发送不回显）
@@ -128,6 +184,9 @@ COMPACT_MIN_FREED_RATIO = 0.15      # 释放量低于窗口该比例时放弃整
 COMPACT_DECISION_MAX_TOKENS = 2000  # 决策调用输出上限
 COMPACT_SUMMARY_MAX_TOKENS = 4000   # 摘要调用输出上限
 COMPACT_COOLDOWN_TURNS = 3          # 自动整理的最小间隔轮数
+COMPACT_ARCHIVE_MAX_TOOL_ROUNDS = 6  # 归档调用（写记忆）的工具轮数上限
+COMPACT_TEMPERATURE = 0.0           # 归档/决策调用温度（需确定性输出）
+COMPACT_SUMMARY_TEMPERATURE = 0.2   # 摘要调用温度
 
 # ===== 工具迭代限制 =====
 STREAM_MAX_HARD_LIMIT = 100
@@ -151,6 +210,8 @@ MSG_IMAGES_FIELD = "_images"    # 消息级附件：user 消息携带的图片 [
 # ===== 多模态视觉 =====
 MODEL_CAPABILITY_VISION = "vision"  # models.json capabilities 列表中的视觉能力标识
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+DEFAULT_IMAGE_MEDIA_TYPE = "image/png"  # 图片缺省媒体类型
+IMAGE_MAX_BYTES = 64 * 1024 * 1024      # 图片大小上限 64MB
 
 # ===== 对话恢复：文件工具集 =====
 FILE_AUTOCOMPLETE_TOOLS = {"create_file", "write_file", "read_file", "modify_file", "delete_file"}

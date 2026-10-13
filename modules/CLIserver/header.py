@@ -17,7 +17,7 @@ def print_header():
     config = state.config
     deprecation_warning = config.check_model_deprecation(
         state.current_config.get('model', constants.DEFAULT_MODEL))
-    work_dir = state.current_config.get('work_directory', 'workplace')
+    work_dir = state.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
 
     dolphin = Text(_DOLPHIN_ART, style="bright_blue")
 

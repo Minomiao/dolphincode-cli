@@ -15,21 +15,13 @@ from . import chat_service
 
 log = get_logger("Dolphin.config_service")
 
-# 最大 Token 数上下限（上限对齐 DeepSeek 官方文档的 384K 输出长度）
-MIN_MAX_TOKENS = 1
-MAX_MAX_TOKENS = 393216
-# 命令前缀最大长度（超出截断）
-COMMAND_PREFIX_MAX_LEN = 10
-# 合法的思考深度
-VALID_EFFORT_LEVELS = ('fine', 'normal', 'high')
-
 
 def get_settings(ctx):
     """读取当前可配置项快照。"""
     return {
         "model": ctx.current_config.get('model', constants.DEFAULT_MODEL),
-        "max_tokens": ctx.current_config.get('max_tokens', 18000),
-        "command_prefix": ctx.current_config.get('command_prefix', '/'),
+        "max_tokens": ctx.current_config.get('max_tokens', constants.DEFAULT_MAX_TOKENS),
+        "command_prefix": ctx.current_config.get('command_prefix', constants.DEFAULT_COMMAND_PREFIX),
         "show_thinking": ctx.show_thinking,
         "effort_level": ctx.effort_level,
     }
@@ -45,9 +37,9 @@ def set_max_tokens(ctx, value):
     Returns:
         {success, value} 或 {success: False, error: 'min'/'max'}
     """
-    if value < MIN_MAX_TOKENS:
+    if value < constants.MIN_MAX_TOKENS:
         return {"success": False, "error": "min"}
-    if value > MAX_MAX_TOKENS:
+    if value > constants.MAX_MAX_TOKENS:
         return {"success": False, "error": "max"}
     ctx.current_config['max_tokens'] = value
     ctx.config.save_config(ctx.current_config)
@@ -61,9 +53,9 @@ def set_command_prefix(ctx, prefix):
     Returns:
         {success, value, truncated}
     """
-    truncated = len(prefix) > COMMAND_PREFIX_MAX_LEN
+    truncated = len(prefix) > constants.COMMAND_PREFIX_MAX_LEN
     if truncated:
-        prefix = prefix[:COMMAND_PREFIX_MAX_LEN]
+        prefix = prefix[:constants.COMMAND_PREFIX_MAX_LEN]
     ctx.current_config['command_prefix'] = prefix
     ctx.config.save_config(ctx.current_config)
     ctx.cmd.save_commands()
@@ -91,7 +83,7 @@ def set_effort_level(ctx, level):
     Returns:
         {success, value} 或 {success: False, error: 'invalid'}
     """
-    if level not in VALID_EFFORT_LEVELS:
+    if level not in constants.VALID_EFFORT_LEVELS:
         return {"success": False, "error": "invalid"}
     ctx.effort_level = level
     if ctx.chat_instance is not None:

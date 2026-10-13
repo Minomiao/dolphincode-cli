@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+from modules.bootstrap import constants
 from modules.logger import get_logger
 from modules.core.services import conversation_service
 from . import i18n
@@ -22,7 +23,7 @@ _console = Console()
 def open_work_directory(path=None, silent=False):
     """打开/切换工作目录。"""
     if not path:
-        cur = state.current_config.get('work_directory', 'workplace')
+        cur = state.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
         print(f"\n当前工作目录: {cur}")
         path = input("输入要打开的工作目录: ")
         if not path:
@@ -37,7 +38,7 @@ def open_work_directory(path=None, silent=False):
             print("取消操作")
             return
 
-    old_work_directory = state.current_config.get('work_directory', 'workplace')
+    old_work_directory = state.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
     if abs_path != old_work_directory:
         print("工作目录已更改，正在重新加载技能模块...")
 
@@ -112,7 +113,7 @@ def select_conversation(command_key='list'):
     log.info(f"进入对话选择界面（来源命令: {command_key}）")
 
     def _render():
-        work_dir = state.current_config.get('work_directory', 'workplace')
+        work_dir = state.current_config.get('work_directory', constants.DEFAULT_WORK_DIR)
         dpc_convs = conversation_service.list_conversations(state)
         log.info(f"对话选择界面（工作目录: {work_dir}），共 {len(dpc_convs)} 个对话")
 

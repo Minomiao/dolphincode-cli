@@ -55,10 +55,10 @@ class BaseSkillLoader:
     def _get_default_work_dir(self) -> str:
         try:
             from modules.main_server import config
-            return config.load_config().get('work_directory', 'workplace')
+            return config.load_config().get('work_directory', constants.DEFAULT_WORK_DIR)
         except Exception as e:
             log.warning(f"获取默认工作目录失败: {e}")
-            return 'workplace'
+            return constants.DEFAULT_WORK_DIR
 
     def _rebuild_tool_lookup(self):
         """从已加载技能生成完整工具名 → (skill_name, func_name) 精确映射表。

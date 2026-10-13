@@ -2,6 +2,7 @@ import os
 import re
 
 from modules.logger import get_logger
+from modules.bootstrap import constants
 from modules import bootstrap as app_paths
 from .prompt_defaults import _DEFAULTS, _EFFORT_FILES, _PROMPT_FILES
 
@@ -168,7 +169,7 @@ class PromptManager:
         turn_reminder 会追加当前所选语言的语言准则，特殊语言（文言文、
         喵喵語等）再附加对应风格指导。
         """
-        effort_level = kwargs.pop("effort_level", "fine")
+        effort_level = kwargs.pop("effort_level", constants.DEFAULT_EFFORT_LEVEL)
         effort_prompt = self.effort_prompts.get(effort_level, "")
 
         from modules.CLIserver import i18n

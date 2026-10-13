@@ -7,6 +7,7 @@
     ctx.effort_level: str                     思考深度
     ctx.current_dir_id / ctx.current_conv_id: 当前对话标识
 """
+from modules.bootstrap import constants
 from modules.logger import get_logger
 
 log = get_logger("Dolphin.chat_service")
@@ -31,7 +32,7 @@ def rebuild_chat_instance(ctx, callback=None):
 
     ctx.chat_instance = ctx.chat.DolphinChat(
         model=ctx.current_config.get('model'),
-        max_tokens=ctx.current_config.get('max_tokens', 18000),
+        max_tokens=ctx.current_config.get('max_tokens', constants.DEFAULT_MAX_TOKENS),
         callback=callback
     )
     ctx.chat_instance.messages = old_messages

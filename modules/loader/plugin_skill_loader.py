@@ -8,6 +8,7 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 from modules.logger import get_logger
 from modules import bootstrap as app_paths
+from modules.bootstrap import constants
 from .base_loader import BaseSkillLoader
 
 log = get_logger("Dolphin.plugin_skill_loader")
@@ -27,7 +28,7 @@ class PluginSkillLoader(BaseSkillLoader):
                 log.warning(f"  - {skill_name}: {error}")
 
     def _tool_prefix(self) -> str:
-        return "plugin_"
+        return constants.TOOL_PREFIX_PLUGIN
 
     def _config_section(self) -> str:
         return "plugins"

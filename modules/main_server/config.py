@@ -50,9 +50,9 @@ def _ensure_env_file():
         env_path.parent.mkdir(parents=True, exist_ok=True)
         env_path.touch()
         if api_key:
-            set_key(app_paths.ENV_FILE, "QUICKAI_API_KEY", api_key)
+            set_key(app_paths.ENV_FILE, constants.ENV_API_KEY, api_key)
         if work_dir:
-            set_key(app_paths.ENV_FILE, "QUICKAI_WORK_DIRECTORY", work_dir)
+            set_key(app_paths.ENV_FILE, constants.ENV_WORK_DIRECTORY, work_dir)
         log.info(f"已自动创建 .env 文件并从 config.json 导入配置")
         load_dotenv(app_paths.ENV_FILE, override=True)
     except PermissionError as e:
@@ -62,16 +62,13 @@ def _ensure_env_file():
     except Exception as e:
         log.warning(f"创建 .env 文件发生意外错误: {e}")
 
-# 模型元数据缺失时的兜底上下文窗口
-DEFAULT_CONTEXT_WINDOW = 128000
-
 # models.json 缓存：(文件路径, 数据)，路径变化时自动失效
 _models_cache = None
 
 
 def _seed_models():
     """内置模型的种子定义，允许用 QUICKAI_BASE_URL 覆盖内置服务地址。"""
-    env_base_url = os.getenv("QUICKAI_BASE_URL")
+    env_base_url = os.getenv(constants.ENV_BASE_URL)
     seeds = []
     for seed in constants.DEFAULT_MODELS:
         entry = dict(seed)
@@ -162,7 +159,7 @@ def _remove_env_key(env_name):
 def _write_env_work_dir(work_dir):
     """把工作目录写入 .env（为空时跳过）。"""
     if work_dir:
-        _write_env_key("QUICKAI_WORK_DIRECTORY", work_dir)
+        _write_env_key(constants.ENV_WORK_DIRECTORY, work_dir)
 
 
 def _normalize_models(file_data):
@@ -303,7 +300,7 @@ def _allocated_env_names():
 
 
 def add_custom_model(name, description, base_url, api_key,
-                     context_window=DEFAULT_CONTEXT_WINDOW, vision=False):
+                     context_window=constants.DEFAULT_CONTEXT_WINDOW, vision=False):
     """添加一个自定义模型，密钥写入 .env 并记录映射变量名。
 
     Args:
@@ -458,7 +455,7 @@ def get_available_models():
 def get_context_window(model_name: str) -> int:
     """获取指定模型的上下文窗口大小，未记录时回退 128000。"""
     model_info = get_model_metadata(model_name) or {}
-    return model_info.get("context_window", DEFAULT_CONTEXT_WINDOW)
+    return model_info.get("context_window", constants.DEFAULT_CONTEXT_WINDOW)
 
 def check_model_deprecation(model_name):
     """检查模型是否已废弃或即将废弃，返回警告信息"""
@@ -488,13 +485,13 @@ def check_model_deprecation(model_name):
 def _get_default_config():
     """config.json 的默认结构（模型字段见 models.json，敏感字段见 .env）。"""
     return {
-        "language": "zh-CN",
-        "command_prefix": "/",
-        "max_tokens": 18000,
+        "language": constants.DEFAULT_LANGUAGE,
+        "command_prefix": constants.DEFAULT_COMMAND_PREFIX,
+        "max_tokens": constants.DEFAULT_MAX_TOKENS,
         "reasoning": True,
         "skills": {"web_search": True},
         "plugins": {},
-        "show_thinking": False,
+        "show_thinking": constants.DEFAULT_SHOW_THINKING,
     }
 
 
@@ -514,7 +511,7 @@ def load_config():
     model_name = _load_models().get("current", constants.DEFAULT_MODEL)
     config_data["model"] = model_name
     config_data.update(resolve_model_credentials(model_name))
-    config_data["work_directory"] = os.getenv("QUICKAI_WORK_DIRECTORY", "workplace")
+    config_data["work_directory"] = os.getenv(constants.ENV_WORK_DIRECTORY, constants.DEFAULT_WORK_DIR)
     return config_data
 
 

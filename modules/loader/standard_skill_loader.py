@@ -16,6 +16,7 @@ import yaml
 
 from modules.logger import get_logger
 from modules import bootstrap as app_paths
+from modules.bootstrap import constants
 from .base_loader import BaseSkillLoader
 
 log = get_logger("Dolphin.standard_skill_loader")
@@ -42,7 +43,7 @@ class StandardSkillLoader(BaseSkillLoader):
                 log.warning(f"  - {skill_name}: {error}")
 
     def _tool_prefix(self) -> str:
-        return "stdskill_"
+        return constants.TOOL_PREFIX_STD_SKILL
 
     def _config_section(self) -> str:
         return "stdskills"

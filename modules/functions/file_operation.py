@@ -8,16 +8,13 @@ from . import backup_manager
 
 log = get_logger("Dolphin.file_operation")
 
-MAX_FILE_SIZE = constants.MAX_FILE_SIZE
-MAX_LINE_COUNT = constants.MAX_LINE_COUNT
-
 
 def _check_dpc_restriction(absolute_path: str) -> Tuple[bool, Optional[str]]:
     from modules.chater import dpc_manager
     current = os.path.dirname(os.path.abspath(absolute_path))
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     while True:
-        dpc_path = os.path.join(current, '.dpc')
+        dpc_path = os.path.join(current, constants.DPC_FILENAME)
         if os.path.exists(dpc_path):
             rel = os.path.relpath(absolute_path, current)
             allowed, msg = dpc_manager.is_path_allowed(current, rel)
@@ -76,7 +73,7 @@ class FileOperation:
         """获取工作目录"""
         try:
             from modules.main_server import config
-            work_directory = config.load_config().get('work_directory', 'workplace')
+            work_directory = config.load_config().get('work_directory', constants.DEFAULT_WORK_DIR)
             return {
                 "success": True,
                 "work_directory": work_directory
@@ -120,16 +117,16 @@ class FileOperation:
 
             # 验证内容大小
             content_size = len(content.encode(encoding))
-            if content_size > MAX_FILE_SIZE:
+            if content_size > constants.MAX_FILE_SIZE:
                 return {
-                    "error": f"文件内容过大: {content_size} 字节，最大允许: {MAX_FILE_SIZE} 字节"
+                    "error": f"文件内容过大: {content_size} 字节，最大允许: {constants.MAX_FILE_SIZE} 字节"
                 }
             
             # 验证行数
             line_count = len(content.splitlines())
-            if line_count > MAX_LINE_COUNT:
+            if line_count > constants.MAX_LINE_COUNT:
                 return {
-                    "error": f"文件行数过多: {line_count} 行，最大允许: {MAX_LINE_COUNT} 行"
+                    "error": f"文件行数过多: {line_count} 行，最大允许: {constants.MAX_LINE_COUNT} 行"
                 }
             
             # 构建完整路径（含符号链接检测）
@@ -207,13 +204,13 @@ class FileOperation:
             encoding = request_data.get('encoding', 'utf-8')
             try:
                 offset = int(request_data.get('offset', 0))
-                limit = int(request_data.get('limit', MAX_LINE_COUNT))
+                limit = int(request_data.get('limit', constants.MAX_LINE_COUNT))
             except (TypeError, ValueError):
                 return {"error": "offset/limit 必须为整数"}
             if offset < 0 or limit < 0:
                 return {"error": "offset/limit 不能为负数"}
             # limit 采用 100 行冗余设计：对外声明 1000 行，实际默认 1100 行
-            limit = min(limit, MAX_LINE_COUNT)
+            limit = min(limit, constants.MAX_LINE_COUNT)
             work_directory = request_data.get('work_directory')
             
             if not file_path:
@@ -239,9 +236,9 @@ class FileOperation:
             
             # 检查文件大小
             file_size = resolved_path.stat().st_size
-            if file_size > MAX_FILE_SIZE:
+            if file_size > constants.MAX_FILE_SIZE:
                 return {
-                    "error": f"文件过大: {file_size} 字节，最大允许: {MAX_FILE_SIZE} 字节"
+                    "error": f"文件过大: {file_size} 字节，最大允许: {constants.MAX_FILE_SIZE} 字节"
                 }
             
             # 读取文件内容
@@ -332,16 +329,16 @@ class FileOperation:
                 return -1, None
 
         # 第三级：模糊匹配（95% 以上相似度）
-        if len(target) < 10:
+        if len(target) < constants.FUZZY_MIN_TARGET_LEN:
             return -1, None
 
         from difflib import SequenceMatcher
 
         target_len = len(target)
         content_len = len(content)
-        window_margin = max(int(target_len * 0.2), 20)
+        window_margin = max(int(target_len * constants.FUZZY_MARGIN_RATIO), constants.FUZZY_MARGIN_MIN)
         window_size = target_len + window_margin
-        step = max(window_size // 4, 1)
+        step = max(window_size // constants.FUZZY_STEP_DIVISOR, 1)
 
         best_ratio = 0
         best_start = -1
@@ -364,7 +361,7 @@ class FileOperation:
 
             pos += step
 
-        if best_ratio >= 0.95:
+        if best_ratio >= constants.FUZZY_MATCH_THRESHOLD:
             return best_start, f"fuzzy({best_ratio:.1%})"
 
         return -1, None
@@ -407,8 +404,8 @@ class FileOperation:
                 return {"error": f"路径不是文件: {file_path}"}
             
             file_size = resolved_path.stat().st_size
-            if file_size > MAX_FILE_SIZE:
-                return {"error": f"文件超过最大限制 ({MAX_FILE_SIZE / 1024 / 1024:.0f}MB)"}
+            if file_size > constants.MAX_FILE_SIZE:
+                return {"error": f"文件超过最大限制 ({constants.MAX_FILE_SIZE / 1024 / 1024:.0f}MB)"}
             
             # 读取文件内容
             with open(resolved_path, 'r', encoding=encoding, errors='ignore') as f:
@@ -425,11 +422,11 @@ class FileOperation:
             # 构建新内容（只替换第一次出现）
             new_content = original_content[:index] + new_str + original_content[index + len(old_str):]
             
-            # 验证新内容大小（对齐 create_file 的 MAX_FILE_SIZE 校验）
+            # 验证新内容大小（对齐 create_file 的 constants.MAX_FILE_SIZE 校验）
             new_content_size = len(new_content.encode(encoding))
-            if new_content_size > MAX_FILE_SIZE:
+            if new_content_size > constants.MAX_FILE_SIZE:
                 return {
-                    "error": f"修改后文件内容过大: {new_content_size} 字节，最大允许: {MAX_FILE_SIZE} 字节"
+                    "error": f"修改后文件内容过大: {new_content_size} 字节，最大允许: {constants.MAX_FILE_SIZE} 字节"
                 }
             
             # 计算行数变化

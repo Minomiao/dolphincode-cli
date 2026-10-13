@@ -134,8 +134,8 @@ async def _archive(chat, history: list) -> list:
         history=history,
         allowed_tools=["memory_manager"],
         work_directory=chat.current_work_directory,
-        max_tool_rounds=6,
-        temperature=0,
+        max_tool_rounds=constants.COMPACT_ARCHIVE_MAX_TOOL_ROUNDS,
+        temperature=constants.COMPACT_TEMPERATURE,
         reuse_history_prefix=True,
     )
     keys = []
@@ -161,7 +161,7 @@ async def _request_decisions(chat, groups: list, history: list) -> dict | None:
         prompt=prompt,
         history=history,
         enable_tools=False,
-        temperature=0,
+        temperature=constants.COMPACT_TEMPERATURE,
         max_tokens=constants.COMPACT_DECISION_MAX_TOKENS,
         reuse_history_prefix=True,
     )
@@ -180,7 +180,7 @@ async def _request_summary(chat, groups: list, goal: str, history: list) -> str 
         prompt=prompt,
         history=history,
         enable_tools=False,
-        temperature=0.2,
+        temperature=constants.COMPACT_SUMMARY_TEMPERATURE,
         max_tokens=constants.COMPACT_SUMMARY_MAX_TOKENS,
         reuse_history_prefix=True,
     )
@@ -222,7 +222,7 @@ def _apply(chat, groups: list, decisions: dict, summary: str | None,
             "content": content,
             constants.MSG_DISPLAY_FIELD: False,
         })
-        freed -= len(content) // 3  # 摘要自身占用
+        freed -= len(content) // constants.TOKEN_CHARS_PER_TOKEN  # 摘要自身占用
 
     return {
         "kept": len(keep_ids),

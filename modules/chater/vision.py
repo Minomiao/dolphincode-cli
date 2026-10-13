@@ -21,9 +21,6 @@ log = get_logger("Dolphin.vision")
 # @ 引用正则：@"带引号路径"（可含空格）或 @无空白路径
 _AT_TOKEN_RE = re.compile(r'@(?:"([^"]+)"|([^\s]+))')
 
-# 单图大小上限：与 DeepSeek Files API 对齐
-IMAGE_MAX_BYTES = 64 * 1024 * 1024
-
 # file_id 缓存：{(绝对路径, mtime): file_id}，避免同一图片跨轮重复上传
 _file_id_cache = {}
 
@@ -31,7 +28,7 @@ _file_id_cache = {}
 def guess_media_type(path: str) -> str:
     """根据扩展名推断图片 MIME 类型。"""
     media_type, _ = mimetypes.guess_type(path)
-    return media_type or "image/png"
+    return media_type or constants.DEFAULT_IMAGE_MEDIA_TYPE
 
 
 def _is_valid_image(path: str) -> bool:
@@ -174,7 +171,7 @@ def read_image_file(path: str) -> dict:
             f"不支持的图片格式: {ext}",
             f"支持的格式: {', '.join(sorted(constants.IMAGE_EXTENSIONS))}")
     size = os.path.getsize(abspath)
-    if size > IMAGE_MAX_BYTES:
+    if size > constants.IMAGE_MAX_BYTES:
         return _image_error(f"图片过大: {size} 字节", "图片需小于 64MiB")
     media_type = guess_media_type(abspath)
     return {

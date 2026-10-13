@@ -7,8 +7,6 @@ from modules.bootstrap import constants
 
 log = get_logger("Dolphin.conversation")
 
-_FILE_AUTOCOMPLETE_TOOLS = constants.FILE_AUTOCOMPLETE_TOOLS
-
 
 def __getattr__(name):
     """惰性解析 CONVERSATIONS_DIR（供外部属性访问）。
@@ -27,7 +25,7 @@ def _conversations_dir():
 
 
 def _is_file_tool(tool_name):
-    return any(kw in tool_name for kw in _FILE_AUTOCOMPLETE_TOOLS)
+    return any(kw in tool_name for kw in constants.FILE_AUTOCOMPLETE_TOOLS)
 
 
 def _try_auto_complete_tool(tool_name, arguments, work_dir):
@@ -108,7 +106,7 @@ def _try_auto_complete_tool(tool_name, arguments, work_dir):
                 size = os.path.getsize(full_path)
                 with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
                     lines = f.readlines()
-                preview = "".join(lines[:30]) if lines else ""
+                preview = "".join(lines[:constants.CONVERSATION_PREVIEW_LINES]) if lines else ""
                 return json.dumps({
                     "success": True,
                     "file_path": file_path,
